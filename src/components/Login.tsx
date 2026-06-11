@@ -104,45 +104,59 @@ const Login = ({ onClose }: LoginProps) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/90 backdrop-blur-md flex items-center justify-center z-[150] p-4">
-      <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20 animate-in zoom-in duration-300">
-        <div className="p-10">
-          <header className="text-center mb-8">
-            <div className="inline-block bg-red-50 p-4 rounded-3xl mb-4">
-              <span className="text-3xl">{modoActivacion ? '🔑' : '👣'}</span>
-            </div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">
-              {modoActivacion ? 'Activar Cuenta' : 'PIES CLINIC'}
-            </h2>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mt-2">
-              {modoActivacion ? 'Configura tu acceso personal' : 'Professional Access'}
-            </p>
-          </header>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
+      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
 
+        {/* Header rojo con logo */}
+        <div className="bg-gradient-to-br from-clinic-red to-clinic-redDark px-8 pt-10 pb-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg">
+              <img
+                src="/logo192.png"
+                alt="Pies Clinic"
+                className="w-16 h-16 object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                  (e.currentTarget.nextElementSibling as HTMLElement)!.style.display = 'flex';
+                }}
+              />
+              <span className="text-3xl hidden items-center justify-center">👣</span>
+            </div>
+          </div>
+          <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+            {modoActivacion ? 'Activar Cuenta' : 'Pies Clinic'}
+          </h2>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70 mt-1">
+            {modoActivacion ? 'Configura tu acceso personal' : 'Acceso Profesional'}
+          </p>
+        </div>
+
+        {/* Formulario blanco */}
+        <div className="px-8 py-7">
           <form onSubmit={modoActivacion ? handleActivate : handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 ml-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1">
                 Correo Institucional
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-6 py-4 rounded-2xl border-2 border-gray-50 bg-gray-50 focus:bg-white focus:border-[#D32F2F] focus:outline-none transition-all font-bold text-gray-700 shadow-sm text-sm"
+                className="w-full px-5 py-3.5 rounded-xl border-2 border-gray-100 bg-gray-50 focus:bg-white focus:border-clinic-red focus:outline-none transition-all font-semibold text-gray-800 text-sm"
                 placeholder="usuario@piesclinic.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1 ml-2">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1">
                 {modoActivacion ? 'Contraseña Temporal (Del Admin)' : 'Contraseña'}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-6 py-4 rounded-2xl border-2 border-gray-50 bg-gray-50 focus:bg-white focus:border-[#D32F2F] focus:outline-none transition-all font-bold text-gray-700 shadow-sm text-sm"
+                className="w-full px-5 py-3.5 rounded-xl border-2 border-gray-100 bg-gray-50 focus:bg-white focus:border-clinic-red focus:outline-none transition-all font-semibold text-gray-800 text-sm"
                 placeholder="••••••••"
                 required
               />
@@ -150,23 +164,23 @@ const Login = ({ onClose }: LoginProps) => {
 
             {modoActivacion && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                <label className="block text-[10px] font-black uppercase tracking-widest text-red-500 mb-1 ml-2">
+                <label className="block text-[10px] font-black uppercase tracking-widest text-clinic-red mb-1.5 ml-1">
                   Nueva Contraseña Personal
                 </label>
                 <input
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-6 py-4 rounded-2xl border-2 border-red-100 bg-red-50/50 focus:bg-white focus:border-[#D32F2F] focus:outline-none transition-all font-bold text-gray-700 shadow-sm text-sm"
+                  className="w-full px-5 py-3.5 rounded-xl border-2 border-red-100 bg-red-50 focus:bg-white focus:border-clinic-red focus:outline-none transition-all font-semibold text-gray-800 text-sm"
                   placeholder="Escribe tu nueva clave..."
                   required
                 />
-                <p className="text-[9px] text-gray-400 ml-2 mt-1 font-medium">* Esta será tu clave definitiva.</p>
+                <p className="text-[9px] text-gray-400 ml-1 mt-1 font-medium">Esta será tu clave definitiva.</p>
               </div>
             )}
 
             {error && (
-              <div className="bg-red-50 border border-red-100 p-3 rounded-xl text-red-600 text-[10px] font-bold text-center">
+              <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-clinic-red text-[10px] font-bold text-center">
                 ⚠️ {error}
               </div>
             )}
@@ -174,12 +188,12 @@ const Login = ({ onClose }: LoginProps) => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-5 rounded-[1.5rem] font-black shadow-xl transition-all transform active:scale-95 uppercase text-xs tracking-widest disabled:opacity-50 bg-[#D32F2F] text-white hover:bg-black mt-2"
+              className="w-full py-4 rounded-2xl font-black shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest disabled:opacity-50 bg-clinic-red text-white hover:bg-clinic-redDark mt-1"
             >
               {loading ? 'Procesando...' : modoActivacion ? 'Confirmar Activación' : 'Entrar al Panel'}
             </button>
 
-            <div className="text-center mt-4">
+            <div className="text-center pt-1">
               <button
                 type="button"
                 onClick={() => {
@@ -188,13 +202,14 @@ const Login = ({ onClose }: LoginProps) => {
                   setPassword('');
                   setNewPassword('');
                 }}
-                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-[#D32F2F] transition-colors"
+                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-clinic-red transition-colors"
               >
                 {modoActivacion ? '← Cancelar' : '¿Primer ingreso? Activa tu cuenta aquí'}
               </button>
             </div>
           </form>
         </div>
+
       </div>
     </div>
   );
