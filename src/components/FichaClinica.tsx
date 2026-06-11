@@ -63,6 +63,8 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const sigCanvas = useRef<SignatureCanvas>(null);
   const panelDerechoRef = useRef<HTMLDivElement>(null);
   const [firmaDigital, setFirmaDigital] = useState<string | null>(null);
+  const [firmaDataURL, setFirmaDataURL] = useState<string | null>(null);
+  const [uploadingFirma, setUploadingFirma] = useState(false);
 
   const [anamnesis, setAnamnesis] = useState<Anamnesis>({
     edad: '', grupoSanguineo: 'O+', profesion: '',
@@ -146,15 +148,30 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const limpiarFirma = () => {
     sigCanvas.current?.clear();
     setFirmaDigital(null);
+    setFirmaDataURL(null);
   };
 
-  const guardarFirma = () => {
+  const guardarFirma = async () => {
     if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
       alert('Por favor firme antes de guardar.');
       return;
     }
     const dataURL = sigCanvas.current.getCanvas().toDataURL('image/png');
-    setFirmaDigital(dataURL);
+    setFirmaDataURL(dataURL);
+    setUploadingFirma(true);
+    try {
+      const blob = await fetch(dataURL).then((r) => r.blob());
+      const storageRef = ref(storage, `pacientes/${cita.pacienteId}/firmas/${cita.id}.png`);
+      const snapshot = await uploadBytes(storageRef, blob);
+      const url = await getDownloadURL(snapshot.ref);
+      setFirmaDigital(url);
+    } catch (e) {
+      console.error('Error al subir firma:', e);
+      alert('Error al guardar la firma. Intente de nuevo.');
+      setFirmaDataURL(null);
+    } finally {
+      setUploadingFirma(false);
+    }
   };
 
   const generarPDFConsentimiento = () => {
@@ -177,7 +194,8 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     y += 20;
     docPdf.setDrawColor(0);
     docPdf.roundedRect(14, y, 55, 25, 2, 2);
-    if (firmaDigital) docPdf.addImage(firmaDigital, 'PNG', 20, y + 2, 40, 20);
+    const imagenFirma = firmaDataURL ?? (firmaDigital?.startsWith('data:') ? firmaDigital : null);
+    if (imagenFirma) docPdf.addImage(imagenFirma, 'PNG', 20, y + 2, 40, 20);
     docPdf.setFontSize(8);
     docPdf.text('FIRMA O HUELLA DEL USUARIO', 41, y + 30, { align: 'center' });
     docPdf.roundedRect(75, y, 55, 25, 2, 2);
@@ -360,8 +378,10 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                       )}
                       {!citaVisualizada && !firmaDigital && (
                         <div className="flex gap-2 mt-2">
-                          <button type="button" onClick={() => sigCanvas.current?.clear()} className="text-[10px] underline text-gray-400">Borrar</button>
-                          <button type="button" onClick={guardarFirma} className="text-[10px] font-black text-black bg-gray-200 px-3 py-1 rounded-lg">Confirmar Firma</button>
+                          <button type="button" onClick={() => sigCanvas.current?.clear()} disabled={uploadingFirma} className="text-[10px] underline text-gray-400 disabled:opacity-40">Borrar</button>
+                          <button type="button" onClick={guardarFirma} disabled={uploadingFirma} className="text-[10px] font-black text-black bg-gray-200 px-3 py-1 rounded-lg disabled:opacity-50">
+                            {uploadingFirma ? 'Guardando...' : 'Confirmar Firma'}
+                          </button>
                         </div>
                       )}
                       {!citaVisualizada && firmaDigital && (
