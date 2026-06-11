@@ -105,7 +105,17 @@ const Login = ({ onClose }: LoginProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[150] p-4">
-      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden">
+      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden relative">
+
+        {/* Botón cerrar */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white font-black text-lg leading-none transition-colors"
+          aria-label="Cerrar"
+        >
+          ×
+        </button>
 
         {/* Header rojo con logo */}
         <div className="bg-gradient-to-br from-clinic-red to-clinic-redDark px-8 pt-10 pb-8 text-center">
