@@ -87,7 +87,7 @@ const DirectorioPacientes = () => {
     if (!pacienteSeleccionado) return null;
 
     const historialClinico = citasHistoricas.filter((c) => c.pacienteId === pacienteSeleccionado.id);
-    const historialConFotos = historialClinico.filter((c) => (c as any).fotos && (c as any).fotos.length > 0);
+    const historialConFotos = historialClinico.filter((c) => c.fotos && c.fotos.length > 0);
 
     return (
       <div className="fixed inset-0 bg-gray-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -149,7 +149,7 @@ const DirectorioPacientes = () => {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {((cita as any).fotos as string[]).map((fotoUrl: string, idx: number) => (
+                        {(cita.fotos ?? []).map((fotoUrl: string, idx: number) => (
                           <div key={idx} onClick={() => setImagenZoom(fotoUrl)} className="aspect-square rounded-2xl overflow-hidden cursor-zoom-in group relative border border-gray-100">
                             <img src={fotoUrl} alt={`Evidencia ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">

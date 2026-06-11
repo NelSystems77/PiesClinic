@@ -6,7 +6,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SignatureCanvas from 'react-signature-canvas';
 import imageCompression from 'browser-image-compression';
-import { Cita } from '../types';
+import { Cita, ConsentimientoInfo } from '../types';
 
 const CATALOGO_FLAT = [
   'Onicocriptosis', 'Onicomicosis', 'Onicogrifosis', 'Onicolisis', 'Onicodistrofia', 'Onicofosis', 'Onicosis traumática', 'Hematoma subungueal', 'Paroniquia', 'Uña en pinza', 'Uña en teja', 'Uñas frágiles', 'Onicorrexis',
@@ -42,11 +42,6 @@ interface Anamnesis {
   [key: string]: string;
 }
 
-interface ConsentimientoData {
-  procedimiento: string;
-  riesgos: string;
-  representante: string;
-}
 
 interface FichaClinicaProps {
   cita: Cita;
@@ -57,8 +52,8 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const [loading, setLoading] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [tabActual, setTabActual] = useState<Tab>('atencion');
-  const [historial, setHistorial] = useState<any[]>([]);
-  const [citaVisualizada, setCitaVisualizada] = useState<any | null>(null);
+  const [historial, setHistorial] = useState<Cita[]>([]);
+  const [citaVisualizada, setCitaVisualizada] = useState<Cita | null>(null);
 
   const sigCanvas = useRef<SignatureCanvas>(null);
   const panelDerechoRef = useRef<HTMLDivElement>(null);
@@ -77,19 +72,19 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     calzado: 'Deportivo', actividadFisica: 'Sedentario',
   });
 
-  const [consentimientoData, setConsentimientoData] = useState<ConsentimientoData>({
+  const [consentimientoData, setConsentimientoData] = useState<ConsentimientoInfo>({
     procedimiento: '', riesgos: '', representante: '',
   });
 
-  const [hallazgos, setHallazgos] = useState<string>((cita as any).hallazgos || '');
-  const [diagnosticosSeleccionados, setDiagnosticosSeleccionados] = useState<string[]>((cita as any).diagnosticosSeleccionados || []);
-  const [tratamiento, setTratamiento] = useState<string>((cita as any).tratamiento || '');
-  const [seguimiento, setSeguimiento] = useState<string>((cita as any).seguimiento || '');
+  const [hallazgos, setHallazgos] = useState<string>(cita.hallazgos ?? '');
+  const [diagnosticosSeleccionados, setDiagnosticosSeleccionados] = useState<string[]>(cita.diagnosticosSeleccionados ?? []);
+  const [tratamiento, setTratamiento] = useState<string>(cita.tratamiento ?? '');
+  const [seguimiento, setSeguimiento] = useState<string>(cita.seguimiento ?? '');
   const [busquedaDiag, setBusquedaDiag] = useState('');
   const [sugerencias, setSugerencias] = useState<string[]>([]);
-  const [fotos, setFotos] = useState<string[]>((cita as any).fotos || []);
-  const [costo, setCosto] = useState<string>((cita as any).costo || '');
-  const [metodoPago, setMetodoPago] = useState<string>((cita as any).metodoPago || 'Efectivo');
+  const [fotos, setFotos] = useState<string[]>(cita.fotos ?? []);
+  const [costo, setCosto] = useState<string>(cita.costo?.toString() ?? '');
+  const [metodoPago, setMetodoPago] = useState<string>(cita.metodoPago ?? 'Efectivo');
 
   useEffect(() => {
     if (panelDerechoRef.current) {
@@ -103,11 +98,11 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       try {
         const q = query(collection(db, 'citas'), where('pacienteId', '==', cita.pacienteId), where('estado', '==', 'Atendido'), orderBy('atendidoAt', 'desc'));
         const snap = await getDocs(q);
-        const docsHistorial = snap.docs.filter((d) => d.id !== cita.id).map((d) => ({ id: d.id, ...d.data() }));
+        const docsHistorial = snap.docs.filter((d) => d.id !== cita.id).map((d) => ({ id: d.id, ...d.data() } as Cita));
         setHistorial(docsHistorial);
 
-        if ((cita as any).consentimientoInfo) setConsentimientoData((cita as any).consentimientoInfo);
-        if ((cita as any).firmaUrl) setFirmaDigital((cita as any).firmaUrl);
+        if (cita.consentimientoInfo) setConsentimientoData(cita.consentimientoInfo);
+        if (cita.firmaUrl) setFirmaDigital(cita.firmaUrl);
         if (docsHistorial.length === 0) setTabActual('anamnesis');
 
         const anaSnap = await getDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'));
@@ -117,15 +112,15 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     cargarDatos();
   }, [cita.pacienteId, cita.id]);
 
-  const verCitaPasada = (docAnterior: any) => {
+  const verCitaPasada = (docAnterior: Cita) => {
     setCitaVisualizada(docAnterior);
-    setHallazgos(docAnterior.hallazgos || '');
-    setDiagnosticosSeleccionados(docAnterior.diagnosticosSeleccionados || []);
-    setTratamiento(docAnterior.tratamiento || '');
-    setSeguimiento(docAnterior.seguimiento || '');
-    setFotos(docAnterior.fotos || []);
-    setCosto(docAnterior.costo || '');
-    setMetodoPago(docAnterior.metodoPago || 'Efectivo');
+    setHallazgos(docAnterior.hallazgos ?? '');
+    setDiagnosticosSeleccionados(docAnterior.diagnosticosSeleccionados ?? []);
+    setTratamiento(docAnterior.tratamiento ?? '');
+    setSeguimiento(docAnterior.seguimiento ?? '');
+    setFotos(docAnterior.fotos ?? []);
+    setCosto(docAnterior.costo?.toString() ?? '');
+    setMetodoPago(docAnterior.metodoPago ?? 'Efectivo');
     if (docAnterior.consentimientoInfo) setConsentimientoData(docAnterior.consentimientoInfo);
     if (docAnterior.firmaUrl) setFirmaDigital(docAnterior.firmaUrl);
     setTabActual('atencion');
@@ -133,15 +128,15 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const volverACitaActual = () => {
     setCitaVisualizada(null);
-    setHallazgos((cita as any).hallazgos || '');
-    setDiagnosticosSeleccionados((cita as any).diagnosticosSeleccionados || []);
-    setTratamiento((cita as any).tratamiento || '');
-    setSeguimiento((cita as any).seguimiento || '');
-    setFotos((cita as any).fotos || []);
-    setCosto((cita as any).costo || '');
-    setMetodoPago((cita as any).metodoPago || 'Efectivo');
-    setFirmaDigital((cita as any).firmaUrl || null);
-    if ((cita as any).consentimientoInfo) setConsentimientoData((cita as any).consentimientoInfo);
+    setHallazgos(cita.hallazgos ?? '');
+    setDiagnosticosSeleccionados(cita.diagnosticosSeleccionados ?? []);
+    setTratamiento(cita.tratamiento ?? '');
+    setSeguimiento(cita.seguimiento ?? '');
+    setFotos(cita.fotos ?? []);
+    setCosto(cita.costo?.toString() ?? '');
+    setMetodoPago(cita.metodoPago ?? 'Efectivo');
+    setFirmaDigital(cita.firmaUrl ?? null);
+    if (cita.consentimientoInfo) setConsentimientoData(cita.consentimientoInfo);
     setTabActual('atencion');
   };
 
@@ -176,7 +171,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const generarPDFConsentimiento = () => {
     const docPdf = new jsPDF();
-    const nombreEspecialista = (cita as any).especialista?.nombre || 'Profesional PiesClinic';
+    const nombreEspecialista = cita.especialista?.nombre ?? 'Profesional PiesClinic';
     docPdf.setTextColor(211, 47, 47);
     docPdf.setFontSize(14);
     docPdf.text('Consentimiento Informado', 105, 20, { align: 'center' });
@@ -211,10 +206,10 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     docPdf.save(`Consentimiento_${cita.paciente}.pdf`);
   };
 
-  const generarPDF = (datosCita: any = null) => {
-    const fuente = datosCita || { paciente: cita.paciente, fecha: cita.fecha, especialista: (cita as any).especialista, hallazgos, diagnosticosSeleccionados, tratamiento, seguimiento };
+  const generarPDF = (datosCita: Cita | null = null) => {
+    const fuente = datosCita ?? { ...cita, hallazgos, diagnosticosSeleccionados, tratamiento, seguimiento };
     const docPdf = new jsPDF();
-    const nombreEspecialista = fuente.especialista?.nombre || 'Profesional PiesClinic';
+    const nombreEspecialista = fuente.especialista?.nombre ?? 'Profesional PiesClinic';
     docPdf.setFillColor(211, 47, 47); docPdf.rect(0, 0, 210, 35, 'F'); docPdf.setFontSize(18); docPdf.setTextColor(255, 255, 255); docPdf.text('PIESCLINIC - REPORTE DE ATENCIÓN', 14, 22);
     autoTable(docPdf, { startY: 40, body: [['PACIENTE:', fuente.paciente?.toUpperCase(), 'FECHA:', fuente.fecha], ['ID PACIENTE:', cita.pacienteId, 'ESPECIALISTA:', nombreEspecialista]], theme: 'grid', styles: { fontSize: 8, cellPadding: 2 } });
     let yPos = 65;

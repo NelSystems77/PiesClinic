@@ -24,6 +24,20 @@ export interface Usuario {
 
 export type EstadoCita = "Pendiente" | "Atendido" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
+// ─── Sub-tipos de Cita ────────────────────────────────────────────────────────
+
+export interface EspecialistaCita {
+  nombre: string;
+  grado: string;
+  codigo: string;
+}
+
+export interface ConsentimientoInfo {
+  procedimiento: string;
+  riesgos: string;
+  representante: string;
+}
+
 // ─── Cita (colección: citas) ──────────────────────────────────────────────────
 
 export interface Cita {
@@ -37,8 +51,19 @@ export interface Cita {
   fecha: string;            // 'YYYY-MM-DD'
   profesionalId: string;
   profesionalNombre: string;
-  especialista: string;
+  especialista: EspecialistaCita;
   createdAt: Timestamp;
+  // Campos clínicos — opcionales, los escribe FichaClinica al finalizar la consulta
+  hallazgos?: string;
+  diagnosticosSeleccionados?: string[];
+  tratamiento?: string;
+  seguimiento?: string;
+  fotos?: string[];
+  costo?: number;
+  metodoPago?: string;
+  firmaUrl?: string;
+  consentimientoInfo?: ConsentimientoInfo;
+  atendidoAt?: Timestamp;
 }
 
 // ─── Paciente (colección: pacientes) ──────────────────────────────────────────
