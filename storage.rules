@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Reglas para el Almacenamiento de Fotos (Storage)
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función auxiliar para saber si está logueado
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    // Regla para la carpeta "fotos" y todo lo que tenga dentro
+    // Permite leer y escribir a cualquier usuario autenticado (Mario, Admin, etc.)
+    match /fotos/{allPaths=**} {
+      allow read, write: if estaAutenticado();
+    }
+  }
+}

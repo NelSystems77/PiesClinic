@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* Aquí definimos el estilo base para el cuerpo de PiesClinic */
+@layer base {
+  body {
+    @apply bg-[#F9FAFB] text-gray-800; /* Usamos el color de fondo suave directamente */
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+  }
+}
