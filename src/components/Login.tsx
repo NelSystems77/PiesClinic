@@ -112,7 +112,7 @@ const Login = ({ onClose }: LoginProps) => {
           <div className="flex justify-center mb-4">
             <div className="w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg">
               <img
-                src="/logo192.png"
+                src="/icons/logo.PNG"
                 alt="Pies Clinic"
                 className="w-16 h-16 object-contain"
                 onError={(e) => {
