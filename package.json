@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@esbuild/win32-x64": "^0.27.2",
     "@tailwindcss/postcss": "^4.1.18",
     "browser-image-compression": "^2.0.2",
     "date-fns": "^4.1.0",
