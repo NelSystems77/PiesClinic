@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Solicitud, Usuario, toLocalDateStr } from '../types';
 
@@ -77,7 +77,7 @@ const GestionSolicitudes = () => {
         hora: datosCita.hora,
         estado: 'Pendiente',
         nota: `Origen: Web. Detalle: ${procesando.mensaje || 'Ninguno'}`,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
       });
 
       await deleteDoc(doc(db, 'solicitudes', procesando.id));

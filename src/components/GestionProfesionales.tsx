@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import app from '../firebase';
-import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { Usuario } from '../types';
@@ -72,9 +72,11 @@ const GestionProfesionales = () => {
           rol: nuevoPro.rol,
           email: nuevoPro.email.toLowerCase().trim(),
           activo: true,
+          estado: 'activo',
           esNuevo: true,
           esAdmin: false,
-          createdAt: new Date(),
+          fechaActivacion: null,
+          createdAt: serverTimestamp(),
         });
 
         setShowForm(false);

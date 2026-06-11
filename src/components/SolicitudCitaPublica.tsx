@@ -34,7 +34,12 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
 
     try {
       await addDoc(collection(db, 'solicitudes'), {
-        ...formData,
+        nombre: formData.nombre,
+        telefono: formData.telefono,
+        servicio: formData.servicio,
+        fechaDeseada: formData.fechaPreferida,
+        hora: formData.jornada,
+        mensaje: formData.notas,
         estado: 'pendiente',
         createdAt: serverTimestamp(),
       });
