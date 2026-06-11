@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, query, where, onSnapshot, orderBy, deleteDoc, doc, getDocs, writeBatch } from 'firebase/firestore';
 import FormularioCita from './FormularioCita';
@@ -12,10 +13,12 @@ import GestionSolicitudes from './GestionSolicitudes';
 import DirectorioPacientes from './DirectorioPacientes';
 import { Cita, Usuario } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
+import { useConfirm } from '../hooks/useConfirm';
 
 type Vista = 'agenda' | 'staff' | 'caja' | 'reportes' | 'pacientes' | 'migracion' | 'solicitudes';
 
 const Dashboard = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const { usuario, esAdmin } = useAuthStore();
   const userRole = usuario?.rol || 'especialista';
   const userEmail = usuario?.email || null;
@@ -105,8 +108,8 @@ const Dashboard = () => {
   };
 
   const eliminarCita = async (id: string, nombre: string) => {
-    if (window.confirm(`¿Desea eliminar la cita de ${nombre}?`)) {
-      try { await deleteDoc(doc(db, 'citas', id)); } catch { alert('Error al eliminar'); }
+    if (await confirm(`¿Desea eliminar la cita de ${nombre}?`, { variant: 'danger', confirmLabel: 'Eliminar' })) {
+      try { await deleteDoc(doc(db, 'citas', id)); } catch { toast.error('Error al eliminar la cita'); }
     }
   };
 
@@ -132,10 +135,10 @@ const Dashboard = () => {
 
   const ejecutarMigracion = async () => {
     if (!destinoId || idsSeleccionados.length === 0) {
-      alert('Seleccione un profesional destino y al menos una cita.');
+      toast.error('Seleccione un profesional destino y al menos una cita.');
       return;
     }
-    if (window.confirm(`¿Mover ${idsSeleccionados.length} citas al nuevo profesional?`)) {
+    if (await confirm(`¿Mover ${idsSeleccionados.length} citas al nuevo profesional?`, { confirmLabel: 'Mover citas' })) {
       try {
         const batch = writeBatch(db);
         const profesionalDestino = profesionales.find((p) => p.id === destinoId);
@@ -147,11 +150,11 @@ const Dashboard = () => {
           });
         });
         await batch.commit();
-        alert('✅ Migración completada con éxito.');
+        toast.success('Migración completada con éxito.');
         cargarCitasParaMigracion();
       } catch (error) {
         console.error(error);
-        alert('Error al migrar citas.');
+        toast.error('Error al migrar citas.');
       }
     }
   };
@@ -402,6 +405,7 @@ const Dashboard = () => {
   return (
     <div className="flex-1 p-4 md:p-8 animate-in fade-in duration-700 bg-[#F8F9FA] min-h-screen pb-20">
 
+      {ConfirmDialog}
       {showModal && <FormularioCita onClose={() => setShowModal(false)} fechaSeleccionada={fechaSeleccionada} />}
       {citaSeleccionada && <FichaClinica cita={citaSeleccionada} onClose={() => setCitaSeleccionada(null)} />}
 

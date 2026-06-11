@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import app from '../firebase';
+import { useConfirm } from '../hooks/useConfirm';
 import { collection, getDocs, doc, updateDoc, deleteDoc, query, orderBy, setDoc, serverTimestamp } from 'firebase/firestore';
 import { initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -20,6 +22,7 @@ const NUEVO_PRO_DEFAULT: NuevoPro = {
 };
 
 const GestionProfesionales = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [profesionales, setProfesionales] = useState<Usuario[]>([]);
   const [nuevoPro, setNuevoPro] = useState<NuevoPro>(NUEVO_PRO_DEFAULT);
   const [editando, setEditando] = useState<Usuario | null>(null);
@@ -86,7 +89,7 @@ const GestionProfesionales = () => {
       cargarProfesionales();
     } catch (error: any) {
       console.error('ERROR:', error);
-      alert(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message}`);
     } finally {
       if (secondaryApp) await deleteApp(secondaryApp);
       setLoading(false);
@@ -94,14 +97,17 @@ const GestionProfesionales = () => {
   };
 
   const eliminarProfesional = async (id: string, nombre: string) => {
-    if (!window.confirm(`¿Estás seguro de que quieres ELIMINAR PERMANENTEMENTE a ${nombre}?\nEsta acción borrará sus datos del sistema.`)) return;
+    if (!await confirm(
+      `¿Estás seguro de eliminar permanentemente a ${nombre}?\nEsta acción borrará sus datos del sistema.`,
+      { variant: 'danger', confirmLabel: 'Eliminar', title: 'Acción irreversible' }
+    )) return;
     try {
       await deleteDoc(doc(db, 'usuarios', id));
-      alert(`El perfil de ${nombre} ha sido eliminado.`);
+      toast.success(`El perfil de ${nombre} ha sido eliminado.`);
       cargarProfesionales();
     } catch (error: any) {
       console.error('Error al eliminar:', error);
-      alert('Error al eliminar: ' + error.message);
+      toast.error('Error al eliminar: ' + error.message);
     }
   };
 
@@ -127,7 +133,7 @@ const GestionProfesionales = () => {
 
   return (
     <div className="p-4 md:p-8 bg-white rounded-[2rem] shadow-sm border border-gray-100 animate-in fade-in duration-500">
-
+      {ConfirmDialog}
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1">Configuración de Sistema</p>

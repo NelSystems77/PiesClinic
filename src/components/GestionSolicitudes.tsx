@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Solicitud, Usuario, toLocalDateStr } from '../types';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface DatosCita {
   profesionalId: string;
@@ -12,6 +14,7 @@ interface DatosCita {
 }
 
 const GestionSolicitudes = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [profesionales, setProfesionales] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +45,7 @@ const GestionSolicitudes = () => {
   }, []);
 
   const rechazarSolicitud = async (id: string) => {
-    if (window.confirm('¿Estás seguro de borrar esta solicitud?')) {
+    if (await confirm('¿Estás seguro de borrar esta solicitud?', { variant: 'danger', confirmLabel: 'Borrar' })) {
       await deleteDoc(doc(db, 'solicitudes', id));
     }
   };
@@ -59,7 +62,7 @@ const GestionSolicitudes = () => {
 
   const confirmarCita = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!datosCita.profesionalId) return alert('Selecciona un especialista');
+    if (!datosCita.profesionalId) { toast.error('Selecciona un especialista'); return; }
     if (!procesando) return;
 
     try {
@@ -81,11 +84,11 @@ const GestionSolicitudes = () => {
       });
 
       await deleteDoc(doc(db, 'solicitudes', procesando.id));
-      alert('✅ Cita agendada y solicitud procesada.');
+      toast.success('Cita agendada y solicitud procesada.');
       setProcesando(null);
     } catch (error) {
       console.error('Error al agendar:', error);
-      alert('Error al procesar la solicitud');
+      toast.error('Error al procesar la solicitud');
     }
   };
 
@@ -97,7 +100,7 @@ const GestionSolicitudes = () => {
 
   return (
     <div className="animate-in fade-in zoom-in duration-500 pb-20">
-
+      {ConfirmDialog}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-gray-200 pb-6">
         <div>
           <p className="text-[10px] font-black text-[#D32F2F] uppercase tracking-widest mb-1">Buzón de Entrada</p>

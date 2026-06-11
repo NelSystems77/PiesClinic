@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, addDoc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
@@ -99,7 +100,7 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!especialistaElegido) {
-      alert('⚠️ Por favor, seleccione un especialista.');
+      toast.error('Por favor, seleccione un especialista.');
       return;
     }
     setLoading(true);
@@ -124,7 +125,7 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
       onClose();
     } catch (error) {
       console.error('Error al agendar:', error);
-      alert('Error al guardar la cita.');
+      toast.error('Error al guardar la cita.');
     } finally {
       setLoading(false);
     }

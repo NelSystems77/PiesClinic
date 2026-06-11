@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import toast from 'react-hot-toast';
 import { db, storage } from '../firebase';
 import { doc, updateDoc, collection, query, where, getDocs, orderBy, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -159,7 +160,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const guardarFirma = async () => {
     if (!sigCanvas.current || sigCanvas.current.isEmpty()) {
-      alert('Por favor firme antes de guardar.');
+      toast.error('Por favor firme antes de guardar.');
       return;
     }
     const dataURL = sigCanvas.current.getCanvas().toDataURL('image/png');
@@ -174,7 +175,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       setCommittedFirmaDigital(url);
     } catch (e) {
       console.error('Error al subir firma:', e);
-      alert('Error al guardar la firma. Intente de nuevo.');
+      toast.error('Error al guardar la firma. Intente de nuevo.');
       setFirmaDataURL(null);
     } finally {
       setUploadingFirma(false);
@@ -246,7 +247,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       setFotos((prev) => [...prev, url]);
     } catch (e) {
       console.error('Error al procesar imagen:', e);
-      alert('Hubo un error al subir la imagen.');
+      toast.error('Hubo un error al subir la imagen.');
     } finally {
       setUploadingFoto(false);
     }
@@ -258,7 +259,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     try {
       await setDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'), { ...anamnesis }, { merge: true });
       setTabActual('consentimiento');
-    } catch { alert('Error al guardar Pre Clínica'); } finally { setLoading(false); }
+    } catch { toast.error('Error al guardar Pre Clínica'); } finally { setLoading(false); }
   };
 
   const guardarConsentimientoYContinuar = async () => {
@@ -271,7 +272,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       setCommittedConsentimiento(consentimientoData);
       if (firmaDigital) setCommittedFirmaDigital(firmaDigital);
       setTabActual('atencion');
-    } catch { alert('Error al guardar consentimiento'); } finally { setLoading(false); }
+    } catch { toast.error('Error al guardar consentimiento'); } finally { setLoading(false); }
   };
 
   const finalizarConsulta = async (e: React.FormEvent) => {
@@ -287,7 +288,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       });
       await setDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'), { ...anamnesis }, { merge: true });
       onClose();
-    } catch { alert('Error al guardar'); } finally { setLoading(false); }
+    } catch { toast.error('Error al guardar la ficha clínica'); } finally { setLoading(false); }
   };
 
   const agregarDiagnosticoManual = () => {

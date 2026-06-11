@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { toLocalDateStr } from '../types';
@@ -49,7 +50,7 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
       setExito(true);
     } catch (error) {
       console.error('Error al solicitar:', error);
-      alert('Hubo un error al enviar la solicitud. Intente por WhatsApp.');
+      toast.error('Hubo un error al enviar la solicitud. Intente por WhatsApp.');
     } finally {
       setLoading(false);
     }

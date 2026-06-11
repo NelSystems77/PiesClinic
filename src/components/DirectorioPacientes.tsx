@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, query, orderBy, getDocs, where, writeBatch } from 'firebase/firestore';
 import FichaClinica from './FichaClinica';
 import { Cita } from '../types';
+import { useConfirm } from '../hooks/useConfirm';
 
 interface PacienteResumen {
   id: string;
@@ -14,6 +16,7 @@ interface PacienteResumen {
 }
 
 const DirectorioPacientes = () => {
+  const { confirm, ConfirmDialog } = useConfirm();
   const [pacientesUnicos, setPacientesUnicos] = useState<PacienteResumen[]>([]);
   const [citasHistoricas, setCitasHistoricas] = useState<Cita[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,18 +71,21 @@ const DirectorioPacientes = () => {
   );
 
   const eliminarPacienteCompleto = async (paciente: PacienteResumen) => {
-    if (!window.confirm(`☢️ ATENCIÓN ☢️\n\nEstás a punto de eliminar a ${paciente.nombre} y TODO su historial clínico permanentemente.\n\n¿Estás seguro?`)) return;
+    if (!await confirm(
+      `Estás a punto de eliminar a ${paciente.nombre} y TODO su historial clínico permanentemente.\n\n¿Estás seguro?`,
+      { title: '⚠️ Acción irreversible', variant: 'danger', confirmLabel: 'Eliminar permanentemente' }
+    )) return;
     try {
       const batch = writeBatch(db);
       const q = query(collection(db, 'citas'), where('pacienteId', '==', paciente.id));
       const snap = await getDocs(q);
       snap.forEach((d) => { batch.delete(d.ref); });
       await batch.commit();
-      alert('Paciente y registros eliminados.');
+      toast.success('Paciente y registros eliminados.');
       window.location.reload();
     } catch (error) {
       console.error(error);
-      alert('Error al eliminar.');
+      toast.error('Error al eliminar.');
     }
   };
 
@@ -208,6 +214,7 @@ const DirectorioPacientes = () => {
 
   return (
     <div className="animate-in fade-in zoom-in duration-500 pb-20">
+      {ConfirmDialog}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b border-gray-200 pb-6">
         <div>
           <p className="text-[10px] font-black text-[#D32F2F] uppercase tracking-widest mb-1">Base de Datos</p>
