@@ -60,6 +60,11 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const [firmaDigital, setFirmaDigital] = useState<string | null>(null);
   const [firmaDataURL, setFirmaDataURL] = useState<string | null>(null);
   const [uploadingFirma, setUploadingFirma] = useState(false);
+  // Último consentimiento/firma confirmado con "Continuar a Atención" — sobrevive a navegación por historial
+  const [committedConsentimiento, setCommittedConsentimiento] = useState<ConsentimientoInfo>(
+    cita.consentimientoInfo ?? { procedimiento: '', riesgos: '', representante: '' }
+  );
+  const [committedFirmaDigital, setCommittedFirmaDigital] = useState<string | null>(cita.firmaUrl ?? null);
 
   const [anamnesis, setAnamnesis] = useState<Anamnesis>({
     edad: '', grupoSanguineo: 'O+', profesion: '',
@@ -101,8 +106,14 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
         const docsHistorial = snap.docs.filter((d) => d.id !== cita.id).map((d) => ({ id: d.id, ...d.data() } as Cita));
         setHistorial(docsHistorial);
 
-        if (cita.consentimientoInfo) setConsentimientoData(cita.consentimientoInfo);
-        if (cita.firmaUrl) setFirmaDigital(cita.firmaUrl);
+        if (cita.consentimientoInfo) {
+          setConsentimientoData(cita.consentimientoInfo);
+          setCommittedConsentimiento(cita.consentimientoInfo);
+        }
+        if (cita.firmaUrl) {
+          setFirmaDigital(cita.firmaUrl);
+          setCommittedFirmaDigital(cita.firmaUrl);
+        }
         if (docsHistorial.length === 0) setTabActual('anamnesis');
 
         const anaSnap = await getDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'));
@@ -122,7 +133,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     setCosto(docAnterior.costo?.toString() ?? '');
     setMetodoPago(docAnterior.metodoPago ?? 'Efectivo');
     if (docAnterior.consentimientoInfo) setConsentimientoData(docAnterior.consentimientoInfo);
-    if (docAnterior.firmaUrl) setFirmaDigital(docAnterior.firmaUrl);
+    setFirmaDigital(docAnterior.firmaUrl ?? null);
     setTabActual('atencion');
   };
 
@@ -135,8 +146,8 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     setFotos(cita.fotos ?? []);
     setCosto(cita.costo?.toString() ?? '');
     setMetodoPago(cita.metodoPago ?? 'Efectivo');
-    setFirmaDigital(cita.firmaUrl ?? null);
-    if (cita.consentimientoInfo) setConsentimientoData(cita.consentimientoInfo);
+    setFirmaDigital(committedFirmaDigital);
+    setConsentimientoData(committedConsentimiento);
     setTabActual('atencion');
   };
 
@@ -160,6 +171,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
       const snapshot = await uploadBytes(storageRef, blob);
       const url = await getDownloadURL(snapshot.ref);
       setFirmaDigital(url);
+      setCommittedFirmaDigital(url);
     } catch (e) {
       console.error('Error al subir firma:', e);
       alert('Error al guardar la firma. Intente de nuevo.');
@@ -249,9 +261,17 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     } catch { alert('Error al guardar Pre Clínica'); } finally { setLoading(false); }
   };
 
-  const guardarConsentimientoYContinuar = (e: React.FormEvent) => {
-    e.preventDefault();
-    setTabActual('atencion');
+  const guardarConsentimientoYContinuar = async () => {
+    setLoading(true);
+    try {
+      await updateDoc(doc(db, 'citas', cita.id), {
+        consentimientoInfo: consentimientoData,
+        ...(firmaDigital ? { firmaUrl: firmaDigital } : {}),
+      });
+      setCommittedConsentimiento(consentimientoData);
+      if (firmaDigital) setCommittedFirmaDigital(firmaDigital);
+      setTabActual('atencion');
+    } catch { alert('Error al guardar consentimiento'); } finally { setLoading(false); }
   };
 
   const finalizarConsulta = async (e: React.FormEvent) => {
@@ -444,7 +464,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
               ) : tabActual === 'consentimiento' ? (
                 <>
                   <button type="button" onClick={generarPDFConsentimiento} className="px-8 py-5 text-[#D32F2F] font-black text-[10px] uppercase border-b-2 border-[#D32F2F]">🖨️ Imprimir Hoja</button>
-                  <button type="button" onClick={guardarConsentimientoYContinuar} className="flex-1 bg-[#D32F2F] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all">Continuar a Atención ➡️</button>
+                  <button type="button" onClick={guardarConsentimientoYContinuar} disabled={loading} className="flex-1 bg-[#D32F2F] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all disabled:opacity-50">{loading ? 'Guardando...' : 'Continuar a Atención ➡️'}</button>
                 </>
               ) : (
                 <>
