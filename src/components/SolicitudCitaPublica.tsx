@@ -9,6 +9,7 @@ interface SolicitudCitaPublicaProps {
 
 interface FormData {
   nombre: string;
+  cedula: string;
   telefono: string;
   servicio: string;
   fechaPreferida: string;
@@ -19,6 +20,7 @@ interface FormData {
 const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
   const [formData, setFormData] = useState<FormData>({
     nombre: '',
+    cedula: '',
     telefono: '',
     servicio: 'Valoración Inicial',
     fechaPreferida: '',
@@ -35,6 +37,7 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
     try {
       await addDoc(collection(db, 'solicitudes'), {
         nombre: formData.nombre,
+        cedula: formData.cedula,
         telefono: formData.telefono,
         servicio: formData.servicio,
         fechaDeseada: formData.fechaPreferida,
@@ -103,6 +106,21 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
                 className="w-full p-4 bg-white rounded-2xl font-bold text-gray-900 border-2 border-transparent focus:border-[#D32F2F] outline-none shadow-sm"
                 value={formData.nombre}
                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-gray-400 uppercase ml-2 mb-1">Cédula de Identidad</label>
+              <input
+                required
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]{9}"
+                maxLength={9}
+                placeholder="Ej: 123456789"
+                className="w-full p-4 bg-white rounded-2xl font-bold text-gray-900 border-2 border-transparent focus:border-[#D32F2F] outline-none shadow-sm"
+                value={formData.cedula}
+                onChange={(e) => setFormData({ ...formData, cedula: e.target.value.replace(/\D/g, '') })}
               />
             </div>
 

@@ -68,7 +68,7 @@ const GestionSolicitudes = () => {
 
       await addDoc(collection(db, 'citas'), {
         paciente: procesando.nombre,
-        pacienteId: procesando.telefono,
+        pacienteId: procesando.cedula || procesando.telefono,
         telefono: procesando.telefono,
         servicio: procesando.servicio,
         profesionalId: pro.id,
