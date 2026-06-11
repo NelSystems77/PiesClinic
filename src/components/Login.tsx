@@ -111,7 +111,7 @@ const Login = ({ onClose }: LoginProps) => {
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white font-black text-lg leading-none transition-colors"
+          className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-red-50 text-clinic-red font-black text-lg leading-none transition-colors shadow-sm"
           aria-label="Cerrar"
         >
           ×
@@ -145,7 +145,7 @@ const Login = ({ onClose }: LoginProps) => {
         <div className="px-8 py-7">
           <form onSubmit={modoActivacion ? handleActivate : handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-clinic-red mb-1.5 ml-1">
                 Correo Institucional
               </label>
               <input
@@ -159,7 +159,7 @@ const Login = ({ onClose }: LoginProps) => {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-1.5 ml-1">
+              <label className="block text-[10px] font-black uppercase tracking-widest text-clinic-red mb-1.5 ml-1">
                 {modoActivacion ? 'Contraseña Temporal (Del Admin)' : 'Contraseña'}
               </label>
               <input
@@ -212,7 +212,7 @@ const Login = ({ onClose }: LoginProps) => {
                   setPassword('');
                   setNewPassword('');
                 }}
-                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-clinic-red transition-colors"
+                className="text-[10px] font-black text-clinic-red uppercase tracking-widest hover:text-clinic-redDark transition-colors"
               >
                 {modoActivacion ? '← Cancelar' : '¿Primer ingreso? Activa tu cuenta aquí'}
               </button>
