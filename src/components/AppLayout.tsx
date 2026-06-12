@@ -26,7 +26,7 @@ const AppLayout = () => {
       <nav className="bg-white border-b border-gray-100 px-6 py-4 flex justify-between items-center shadow-sm z-10">
         <Link to="/" className="flex items-center gap-2">
           <img
-            src="/logo235.jpeg"
+            src="/icons/logo.PNG"
             alt="Logo PiesClinic"
             className="w-12 h-12 rounded-lg object-contain bg-white shadow-sm"
           />
