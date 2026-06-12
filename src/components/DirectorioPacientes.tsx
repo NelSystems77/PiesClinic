@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase';
-import { collection, query, orderBy, getDocs, where, writeBatch } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, where, writeBatch, doc } from 'firebase/firestore';
 import FichaClinica from './FichaClinica';
-import { Cita } from '../types';
+import { Cita, Sesion } from '../types';
 import { useConfirm } from '../hooks/useConfirm';
 
 interface PacienteResumen {
@@ -19,6 +19,7 @@ const DirectorioPacientes = () => {
   const { confirm, ConfirmDialog } = useConfirm();
   const [pacientesUnicos, setPacientesUnicos] = useState<PacienteResumen[]>([]);
   const [citasHistoricas, setCitasHistoricas] = useState<Cita[]>([]);
+  const [sesionesPaciente, setSesionesPaciente] = useState<Sesion[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState<PacienteResumen | null>(null);
@@ -70,6 +71,22 @@ const DirectorioPacientes = () => {
     p.nombre.toLowerCase().includes(busqueda.toLowerCase()) || p.id.includes(busqueda)
   );
 
+  useEffect(() => {
+    if (!pacienteSeleccionado) { setSesionesPaciente([]); return; }
+    const fetchSesiones = async () => {
+      try {
+        const snap = await getDocs(collection(db, 'expedientes', pacienteSeleccionado.id, 'sesiones'));
+        const docs = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() } as Sesion))
+          .sort((a, b) => (b.atendidoAt?.toMillis?.() ?? 0) - (a.atendidoAt?.toMillis?.() ?? 0));
+        setSesionesPaciente(docs);
+      } catch (e) {
+        console.error('Error cargando sesiones:', e);
+      }
+    };
+    fetchSesiones();
+  }, [pacienteSeleccionado]);
+
   const eliminarPacienteCompleto = async (paciente: PacienteResumen) => {
     if (!await confirm(
       `Estás a punto de eliminar a ${paciente.nombre} y TODO su historial clínico permanentemente.\n\n¿Estás seguro?`,
@@ -77,9 +94,15 @@ const DirectorioPacientes = () => {
     )) return;
     try {
       const batch = writeBatch(db);
-      const q = query(collection(db, 'citas'), where('pacienteId', '==', paciente.id));
-      const snap = await getDocs(q);
-      snap.forEach((d) => { batch.delete(d.ref); });
+      // Eliminar citas
+      const qCitas = query(collection(db, 'citas'), where('pacienteId', '==', paciente.id));
+      const snapCitas = await getDocs(qCitas);
+      snapCitas.forEach((d) => { batch.delete(d.ref); });
+      // Eliminar sesiones del expediente
+      const snapSesiones = await getDocs(collection(db, 'expedientes', paciente.id, 'sesiones'));
+      snapSesiones.forEach((d) => { batch.delete(d.ref); });
+      // Eliminar doc raíz del expediente
+      batch.delete(doc(db, 'expedientes', paciente.id));
       await batch.commit();
       toast.success('Paciente y registros eliminados.');
       window.location.reload();
@@ -93,7 +116,7 @@ const DirectorioPacientes = () => {
     if (!pacienteSeleccionado) return null;
 
     const historialClinico = citasHistoricas.filter((c) => c.pacienteId === pacienteSeleccionado.id);
-    const historialConFotos = historialClinico.filter((c) => c.fotos && c.fotos.length > 0);
+    const historialConFotos = sesionesPaciente.filter((s) => s.fotos && s.fotos.length > 0);
 
     return (
       <div className="fixed inset-0 bg-gray-900/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -145,17 +168,17 @@ const DirectorioPacientes = () => {
             {tabActivo === 'fotos' && (
               <div className="space-y-8">
                 {historialConFotos.length > 0 ? (
-                  historialConFotos.map((cita) => (
-                    <div key={cita.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+                  historialConFotos.map((ses) => (
+                    <div key={ses.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
                       <div className="flex items-center gap-2 mb-4 border-b border-gray-50 pb-2">
                         <span className="w-8 h-8 bg-red-50 text-[#D32F2F] rounded-full flex items-center justify-center text-xs">📅</span>
                         <div>
-                          <h4 className="font-black text-gray-900 uppercase text-sm">Cita: {cita.fecha}</h4>
-                          <p className="text-[10px] text-gray-400 font-bold uppercase">{cita.servicio}</p>
+                          <h4 className="font-black text-gray-900 uppercase text-sm">Sesión: {ses.fecha}</h4>
+                          <p className="text-[10px] text-gray-400 font-bold uppercase">{ses.servicio}</p>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {(cita.fotos ?? []).map((fotoUrl: string, idx: number) => (
+                        {(ses.fotos ?? []).map((fotoUrl: string, idx: number) => (
                           <div key={idx} onClick={() => setImagenZoom(fotoUrl)} className="aspect-square rounded-2xl overflow-hidden cursor-zoom-in group relative border border-gray-100">
                             <img src={fotoUrl} alt={`Evidencia ${idx}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">

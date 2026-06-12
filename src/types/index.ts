@@ -96,6 +96,61 @@ export interface Solicitud {
   createdAt: Timestamp;
 }
 
+// ─── Expediente clínico (colección: expedientes) ─────────────────────────────
+// expedientes/{pacienteId}          → doc raíz del paciente (anamnesis incluida)
+// expedientes/{pacienteId}/sesiones/{citaId} → una hoja por consulta
+
+export interface AnamnesisClinica {
+  edad: string;
+  grupoSanguineo: string;
+  profesion: string;
+  motivoConsulta: string;
+  diabetes: string;
+  diabetesControl: string;
+  hipertension: string;
+  hipertensionControl: string;
+  asma: string;
+  asmaControl: string;
+  hemofilia: string;
+  fumador: string;
+  vihSida: string;
+  enfVascular: string;
+  alergias: string;
+  medicamentos: string;
+  calzado: string;
+  actividadFisica: string;
+  [key: string]: string;
+}
+
+export interface Expediente {
+  id: string;          // pacienteId
+  pacienteId: string;
+  paciente: string;
+  anamnesis?: AnamnesisClinica;
+  createdAt?: Timestamp;
+}
+
+export interface Sesion {
+  id: string;          // citaId
+  citaId: string;
+  pacienteId: string;
+  paciente: string;
+  fecha: string;       // 'YYYY-MM-DD'
+  servicio: string;
+  profesionalId: string;
+  profesionalNombre: string;
+  hallazgos: string;
+  diagnosticosSeleccionados: string[];
+  tratamiento: string;
+  seguimiento: string;
+  fotos: string[];
+  costo: number;
+  metodoPago: string;
+  firmaUrl?: string;
+  consentimientoInfo?: ConsentimientoInfo;
+  atendidoAt?: Timestamp;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convierte una fecha local a 'YYYY-MM-DD' sin bug UTC (Costa Rica = UTC-6). */

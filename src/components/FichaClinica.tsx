@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 import { db, storage } from '../firebase';
-import { doc, updateDoc, collection, query, where, getDocs, orderBy, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, getDocs, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import SignatureCanvas from 'react-signature-canvas';
 import imageCompression from 'browser-image-compression';
-import { Cita, ConsentimientoInfo } from '../types';
+import { Cita, Sesion, AnamnesisClinica, ConsentimientoInfo } from '../types';
 
 const CATALOGO_FLAT = [
   'Onicocriptosis', 'Onicomicosis', 'Onicogrifosis', 'Onicolisis', 'Onicodistrofia', 'Onicofosis', 'Onicosis traumática', 'Hematoma subungueal', 'Paroniquia', 'Uña en pinza', 'Uña en teja', 'Uñas frágiles', 'Onicorrexis',
@@ -19,30 +19,18 @@ const CATALOGO_FLAT = [
 
 const GRUPOS_SANGUINEOS = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
+const ANAMNESIS_INICIAL: AnamnesisClinica = {
+  edad: '', grupoSanguineo: 'O+', profesion: '',
+  motivoConsulta: '',
+  diabetes: 'No', diabetesControl: 'No Aplica',
+  hipertension: 'No', hipertensionControl: 'No Aplica',
+  asma: 'No', asmaControl: 'No Aplica',
+  hemofilia: 'No', fumador: 'No', vihSida: 'No', enfVascular: '',
+  alergias: '', medicamentos: '',
+  calzado: 'Deportivo', actividadFisica: 'Sedentario',
+};
+
 type Tab = 'anamnesis' | 'consentimiento' | 'atencion';
-
-interface Anamnesis {
-  edad: string;
-  grupoSanguineo: string;
-  profesion: string;
-  motivoConsulta: string;
-  diabetes: string;
-  diabetesControl: string;
-  hipertension: string;
-  hipertensionControl: string;
-  asma: string;
-  asmaControl: string;
-  hemofilia: string;
-  fumador: string;
-  vihSida: string;
-  enfVascular: string;
-  alergias: string;
-  medicamentos: string;
-  calzado: string;
-  actividadFisica: string;
-  [key: string]: string;
-}
-
 
 interface FichaClinicaProps {
   cita: Cita;
@@ -53,30 +41,20 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const [loading, setLoading] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
   const [tabActual, setTabActual] = useState<Tab>('atencion');
-  const [historial, setHistorial] = useState<Cita[]>([]);
-  const [citaVisualizada, setCitaVisualizada] = useState<Cita | null>(null);
+  const [historial, setHistorial] = useState<Sesion[]>([]);
+  const [sesionVisualizada, setSesionVisualizada] = useState<Sesion | null>(null);
 
   const sigCanvas = useRef<SignatureCanvas>(null);
   const panelDerechoRef = useRef<HTMLDivElement>(null);
-  const [firmaDigital, setFirmaDigital] = useState<string | null>(null);
+  const [firmaDigital, setFirmaDigital] = useState<string | null>(cita.firmaUrl ?? null);
   const [firmaDataURL, setFirmaDataURL] = useState<string | null>(null);
   const [uploadingFirma, setUploadingFirma] = useState(false);
-  // Último consentimiento/firma confirmado con "Continuar a Atención" — sobrevive a navegación por historial
   const [committedConsentimiento, setCommittedConsentimiento] = useState<ConsentimientoInfo>(
     cita.consentimientoInfo ?? { procedimiento: '', riesgos: '', representante: '' }
   );
   const [committedFirmaDigital, setCommittedFirmaDigital] = useState<string | null>(cita.firmaUrl ?? null);
 
-  const [anamnesis, setAnamnesis] = useState<Anamnesis>({
-    edad: '', grupoSanguineo: 'O+', profesion: '',
-    motivoConsulta: '',
-    diabetes: 'No', diabetesControl: 'No Aplica',
-    hipertension: 'No', hipertensionControl: 'No Aplica',
-    asma: 'No', asmaControl: 'No Aplica',
-    hemofilia: 'No', fumador: 'No', vihSida: 'No', enfVascular: '',
-    alergias: '', medicamentos: '',
-    calzado: 'Deportivo', actividadFisica: 'Sedentario',
-  });
+  const [anamnesis, setAnamnesis] = useState<AnamnesisClinica>(ANAMNESIS_INICIAL);
 
   const [consentimientoData, setConsentimientoData] = useState<ConsentimientoInfo>({
     procedimiento: '', riesgos: '', representante: '',
@@ -102,44 +80,68 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     const cargarDatos = async () => {
       if (!cita.pacienteId) return;
       try {
-        const q = query(collection(db, 'citas'), where('pacienteId', '==', cita.pacienteId), where('estado', '==', 'Atendido'), orderBy('atendidoAt', 'desc'));
-        const snap = await getDocs(q);
-        const docsHistorial = snap.docs.filter((d) => d.id !== cita.id).map((d) => ({ id: d.id, ...d.data() } as Cita));
+        // Historial de sesiones desde expedientes/{pacienteId}/sesiones
+        const sesionesRef = collection(db, 'expedientes', cita.pacienteId, 'sesiones');
+        const snap = await getDocs(sesionesRef);
+        const docsHistorial = snap.docs
+          .filter((d) => d.id !== cita.id)
+          .map((d) => ({ id: d.id, ...d.data() } as Sesion))
+          .sort((a, b) => {
+            const ta = a.atendidoAt?.toMillis?.() ?? 0;
+            const tb = b.atendidoAt?.toMillis?.() ?? 0;
+            return tb - ta;
+          });
         setHistorial(docsHistorial);
 
-        if (cita.consentimientoInfo) {
-          setConsentimientoData(cita.consentimientoInfo);
-          setCommittedConsentimiento(cita.consentimientoInfo);
+        // Cargar sesión actual si ya existe (consulta en progreso o reabierta)
+        const sesionSnap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id));
+        if (sesionSnap.exists()) {
+          const ses = sesionSnap.data() as Sesion;
+          setHallazgos(ses.hallazgos ?? '');
+          setDiagnosticosSeleccionados(ses.diagnosticosSeleccionados ?? []);
+          setTratamiento(ses.tratamiento ?? '');
+          setSeguimiento(ses.seguimiento ?? '');
+          setFotos(ses.fotos ?? []);
+          setCosto(ses.costo?.toString() ?? '');
+          setMetodoPago(ses.metodoPago ?? 'Efectivo');
+          if (ses.consentimientoInfo) {
+            setConsentimientoData(ses.consentimientoInfo);
+            setCommittedConsentimiento(ses.consentimientoInfo);
+          }
+          if (ses.firmaUrl) {
+            setFirmaDigital(ses.firmaUrl);
+            setCommittedFirmaDigital(ses.firmaUrl);
+          }
         }
-        if (cita.firmaUrl) {
-          setFirmaDigital(cita.firmaUrl);
-          setCommittedFirmaDigital(cita.firmaUrl);
-        }
-        if (docsHistorial.length === 0) setTabActual('anamnesis');
 
-        const anaSnap = await getDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'));
-        if (anaSnap.exists()) setAnamnesis(anaSnap.data() as Anamnesis);
-      } catch (e) { console.error('Error al cargar historial:', e); }
+        // Cargar anamnesis desde expedientes/{pacienteId}
+        const expSnap = await getDoc(doc(db, 'expedientes', cita.pacienteId));
+        if (expSnap.exists() && expSnap.data().anamnesis) {
+          setAnamnesis(expSnap.data().anamnesis as AnamnesisClinica);
+        }
+
+        if (docsHistorial.length === 0) setTabActual('anamnesis');
+      } catch (e) { console.error('Error al cargar datos del expediente:', e); }
     };
     cargarDatos();
   }, [cita.pacienteId, cita.id]);
 
-  const verCitaPasada = (docAnterior: Cita) => {
-    setCitaVisualizada(docAnterior);
-    setHallazgos(docAnterior.hallazgos ?? '');
-    setDiagnosticosSeleccionados(docAnterior.diagnosticosSeleccionados ?? []);
-    setTratamiento(docAnterior.tratamiento ?? '');
-    setSeguimiento(docAnterior.seguimiento ?? '');
-    setFotos(docAnterior.fotos ?? []);
-    setCosto(docAnterior.costo?.toString() ?? '');
-    setMetodoPago(docAnterior.metodoPago ?? 'Efectivo');
-    if (docAnterior.consentimientoInfo) setConsentimientoData(docAnterior.consentimientoInfo);
-    setFirmaDigital(docAnterior.firmaUrl ?? null);
+  const verSesionPasada = (ses: Sesion) => {
+    setSesionVisualizada(ses);
+    setHallazgos(ses.hallazgos ?? '');
+    setDiagnosticosSeleccionados(ses.diagnosticosSeleccionados ?? []);
+    setTratamiento(ses.tratamiento ?? '');
+    setSeguimiento(ses.seguimiento ?? '');
+    setFotos(ses.fotos ?? []);
+    setCosto(ses.costo?.toString() ?? '');
+    setMetodoPago(ses.metodoPago ?? 'Efectivo');
+    if (ses.consentimientoInfo) setConsentimientoData(ses.consentimientoInfo);
+    setFirmaDigital(ses.firmaUrl ?? null);
     setTabActual('atencion');
   };
 
   const volverACitaActual = () => {
-    setCitaVisualizada(null);
+    setSesionVisualizada(null);
     setHallazgos(cita.hallazgos ?? '');
     setDiagnosticosSeleccionados(cita.diagnosticosSeleccionados ?? []);
     setTratamiento(cita.tratamiento ?? '');
@@ -184,7 +186,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const generarPDFConsentimiento = () => {
     const docPdf = new jsPDF();
-    const nombreEspecialista = cita.especialista?.nombre ?? 'Profesional PiesClinic';
+    const nombreEspecialista = cita.especialista?.nombre ?? cita.profesionalNombre ?? 'Profesional PiesClinic';
     docPdf.setTextColor(211, 47, 47);
     docPdf.setFontSize(14);
     docPdf.text('Consentimiento Informado', 105, 20, { align: 'center' });
@@ -219,10 +221,18 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     docPdf.save(`Consentimiento_${cita.paciente}.pdf`);
   };
 
-  const generarPDF = (datosCita: Cita | null = null) => {
-    const fuente = datosCita ?? { ...cita, hallazgos, diagnosticosSeleccionados, tratamiento, seguimiento };
+  const generarPDF = (ses: Sesion | null = null) => {
+    const fuente = ses ?? {
+      paciente: cita.paciente,
+      fecha: cita.fecha,
+      profesionalNombre: cita.especialista?.nombre ?? cita.profesionalNombre,
+      hallazgos,
+      diagnosticosSeleccionados,
+      tratamiento,
+      seguimiento,
+    };
+    const nombreEspecialista = fuente.profesionalNombre ?? 'Profesional PiesClinic';
     const docPdf = new jsPDF();
-    const nombreEspecialista = fuente.especialista?.nombre ?? 'Profesional PiesClinic';
     docPdf.setFillColor(211, 47, 47); docPdf.rect(0, 0, 210, 35, 'F'); docPdf.setFontSize(18); docPdf.setTextColor(255, 255, 255); docPdf.text('PIESCLINIC - REPORTE DE ATENCIÓN', 14, 22);
     autoTable(docPdf, { startY: 40, body: [['PACIENTE:', fuente.paciente?.toUpperCase(), 'FECHA:', fuente.fecha], ['ID PACIENTE:', cita.pacienteId, 'ESPECIALISTA:', nombreEspecialista]], theme: 'grid', styles: { fontSize: 8, cellPadding: 2 } });
     let yPos = 65;
@@ -234,7 +244,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   };
 
   const handleUploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (citaVisualizada) return;
+    if (sesionVisualizada) return;
     const imageFile = e.target.files?.[0];
     if (!imageFile) return;
     setUploadingFoto(true);
@@ -257,7 +267,12 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await setDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'), { ...anamnesis }, { merge: true });
+      // Guardar anamnesis en el doc raíz del expediente del paciente
+      await setDoc(doc(db, 'expedientes', cita.pacienteId), {
+        pacienteId: cita.pacienteId,
+        paciente: cita.paciente,
+        anamnesis,
+      }, { merge: true });
       setTabActual('consentimiento');
     } catch { toast.error('Error al guardar Pre Clínica'); } finally { setLoading(false); }
   };
@@ -265,10 +280,23 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
   const guardarConsentimientoYContinuar = async () => {
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'citas', cita.id), {
+      // Asegurar que el doc raíz del expediente existe
+      await setDoc(doc(db, 'expedientes', cita.pacienteId), {
+        pacienteId: cita.pacienteId,
+        paciente: cita.paciente,
+      }, { merge: true });
+      // Guardar consentimiento en la sesión
+      await setDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id), {
+        citaId: cita.id,
+        pacienteId: cita.pacienteId,
+        paciente: cita.paciente,
+        fecha: cita.fecha,
+        servicio: cita.servicio,
+        profesionalId: cita.profesionalId,
+        profesionalNombre: cita.profesionalNombre,
         consentimientoInfo: consentimientoData,
         ...(firmaDigital ? { firmaUrl: firmaDigital } : {}),
-      });
+      }, { merge: true });
       setCommittedConsentimiento(consentimientoData);
       if (firmaDigital) setCommittedFirmaDigital(firmaDigital);
       setTabActual('atencion');
@@ -277,16 +305,40 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const finalizarConsulta = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (citaVisualizada) return;
+    if (sesionVisualizada) return;
     setLoading(true);
     try {
-      await updateDoc(doc(db, 'citas', cita.id), {
-        hallazgos, diagnosticosSeleccionados, tratamiento, seguimiento,
-        fotos, costo: Number(costo), metodoPago, estado: 'Atendido', atendidoAt: serverTimestamp(),
-        firmaUrl: firmaDigital,
+      // Guardar anamnesis actualizada + asegurar doc raíz
+      await setDoc(doc(db, 'expedientes', cita.pacienteId), {
+        pacienteId: cita.pacienteId,
+        paciente: cita.paciente,
+        anamnesis,
+      }, { merge: true });
+      // Guardar sesión clínica completa
+      await setDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id), {
+        citaId: cita.id,
+        pacienteId: cita.pacienteId,
+        paciente: cita.paciente,
+        fecha: cita.fecha,
+        servicio: cita.servicio,
+        profesionalId: cita.profesionalId,
+        profesionalNombre: cita.profesionalNombre,
+        hallazgos,
+        diagnosticosSeleccionados,
+        tratamiento,
+        seguimiento,
+        fotos,
+        costo: Number(costo),
+        metodoPago,
         consentimientoInfo: consentimientoData,
+        ...(firmaDigital ? { firmaUrl: firmaDigital } : {}),
+        atendidoAt: serverTimestamp(),
       });
-      await setDoc(doc(db, 'pacientes', cita.pacienteId, 'expediente', 'anamnesis'), { ...anamnesis }, { merge: true });
+      // Actualizar cita — solo estado de agendamiento
+      await updateDoc(doc(db, 'citas', cita.id), {
+        estado: 'Atendido',
+        atendidoAt: serverTimestamp(),
+      });
       onClose();
     } catch { toast.error('Error al guardar la ficha clínica'); } finally { setLoading(false); }
   };
@@ -307,20 +359,20 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
         <div className="md:w-64 bg-[#F8F9FA] p-6 border-r flex flex-col gap-3">
           <button type="button" onClick={() => setTabActual('anamnesis')} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'anamnesis' ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>1. Pre Clínica</button>
           <button type="button" onClick={() => setTabActual('consentimiento')} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'consentimiento' ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>2. Consentimiento</button>
-          <button type="button" onClick={() => { volverACitaActual(); setTabActual('atencion'); }} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'atencion' && !citaVisualizada ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>3. Atención Actual</button>
+          <button type="button" onClick={() => { volverACitaActual(); setTabActual('atencion'); }} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'atencion' && !sesionVisualizada ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>3. Atención Actual</button>
 
           <div className="mt-8 flex-1 flex flex-col min-h-0">
             <p className="text-[9px] font-black text-gray-400 uppercase mb-4 px-2">Historial Previo</p>
             <div className="space-y-2 overflow-y-auto pr-2">
               {historial.length === 0 ? (
                 <div className="p-4 border-2 border-dashed border-gray-200 rounded-2xl text-center opacity-40">
-                  <p className="text-[9px] font-bold uppercase">Sin citas previas</p>
+                  <p className="text-[9px] font-bold uppercase">Sin sesiones previas</p>
                 </div>
               ) : (
-                historial.map((h) => (
-                  <button key={h.id} type="button" onClick={() => verCitaPasada(h)} className={`w-full text-left p-3 rounded-xl border transition-all ${citaVisualizada?.id === h.id ? 'border-[#D32F2F] bg-red-50' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
-                    <b className="text-[#D32F2F] text-[10px] block">{h.fecha}</b>
-                    <p className="truncate opacity-70 italic text-[9px]">{h.diagnosticosSeleccionados?.[0] || 'Consulta General'}</p>
+                historial.map((ses) => (
+                  <button key={ses.id} type="button" onClick={() => verSesionPasada(ses)} className={`w-full text-left p-3 rounded-xl border transition-all ${sesionVisualizada?.id === ses.id ? 'border-[#D32F2F] bg-red-50' : 'bg-white border-gray-100 hover:border-gray-200'}`}>
+                    <b className="text-[#D32F2F] text-[10px] block">{ses.fecha}</b>
+                    <p className="truncate opacity-70 italic text-[9px]">{ses.diagnosticosSeleccionados?.[0] || 'Consulta General'}</p>
                   </button>
                 ))
               )}
@@ -335,7 +387,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
               <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tighter leading-none">{cita.paciente}</h2>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">PiesClinic | Expediente Podológico</span>
             </div>
-            {citaVisualizada ? (
+            {sesionVisualizada ? (
               <button type="button" onClick={volverACitaActual} className="bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-[9px] font-black uppercase hover:bg-gray-200 transition-all">Volver a Hoy</button>
             ) : (
               <button type="button" onClick={onClose} className="text-3xl font-light text-gray-300 hover:text-[#D32F2F] transition-colors">×</button>
@@ -343,7 +395,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
           </div>
 
           <form className="space-y-10">
-            <fieldset disabled={!!citaVisualizada} className="space-y-10 block">
+            <fieldset disabled={!!sesionVisualizada} className="space-y-10 block">
               {tabActual === 'anamnesis' ? (
                 <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
                   <div className="grid grid-cols-3 gap-4">
@@ -392,7 +444,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                       ) : (
                         <SignatureCanvas ref={sigCanvas} penColor="black" canvasProps={{ width: 500, height: 150, className: 'sigCanvas' }} />
                       )}
-                      {!citaVisualizada && !firmaDigital && (
+                      {!sesionVisualizada && !firmaDigital && (
                         <div className="flex gap-2 mt-2">
                           <button type="button" onClick={() => sigCanvas.current?.clear()} disabled={uploadingFirma} className="text-[10px] underline text-gray-400 disabled:opacity-40">Borrar</button>
                           <button type="button" onClick={guardarFirma} disabled={uploadingFirma} className="text-[10px] font-black text-black bg-gray-200 px-3 py-1 rounded-lg disabled:opacity-50">
@@ -400,7 +452,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                           </button>
                         </div>
                       )}
-                      {!citaVisualizada && firmaDigital && (
+                      {!sesionVisualizada && firmaDigital && (
                         <button type="button" onClick={limpiarFirma} className="mt-2 text-[10px] text-red-500 underline">Volver a firmar</button>
                       )}
                     </div>
@@ -415,11 +467,11 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                       {diagnosticosSeleccionados.map((d) => (
                         <span key={d} className="bg-[#D32F2F] text-white text-[9px] font-black py-2 px-5 rounded-full flex items-center gap-2">
                           {d.toUpperCase()}
-                          {!citaVisualizada && <button type="button" onClick={() => setDiagnosticosSeleccionados((prev) => prev.filter((x) => x !== d))} className="text-white ml-1 hover:text-black">×</button>}
+                          {!sesionVisualizada && <button type="button" onClick={() => setDiagnosticosSeleccionados((prev) => prev.filter((x) => x !== d))} className="text-white ml-1 hover:text-black">×</button>}
                         </span>
                       ))}
                     </div>
-                    {!citaVisualizada && (
+                    {!sesionVisualizada && (
                       <div className="flex gap-2">
                         <input type="text" className="w-full bg-[#F8F9FA] p-5 rounded-2xl font-bold text-xs border-none shadow-inner" placeholder="Buscar..." value={busquedaDiag} onChange={(e) => { const v = e.target.value; setBusquedaDiag(v); setSugerencias(v.length > 1 ? CATALOGO_FLAT.filter((x) => x.toLowerCase().includes(v.toLowerCase())) : []); }} />
                         {busquedaDiag.length > 0 && sugerencias.length === 0 && (<button type="button" onClick={agregarDiagnosticoManual} className="bg-black text-white px-4 rounded-2xl text-[10px] font-black uppercase whitespace-nowrap hover:bg-[#D32F2F] transition-colors">Guardar Nuevo</button>)}
@@ -433,7 +485,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                   <div className="space-y-3">
                     <label className="text-[11px] font-black uppercase text-gray-400">5. Galería de Seguimiento</label>
                     <div className="flex flex-wrap gap-4">
-                      {!citaVisualizada && (
+                      {!sesionVisualizada && (
                         <label className={`w-24 h-24 border-4 border-dashed border-gray-100 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:border-[#D32F2F] transition-all bg-[#F8F9FA] ${uploadingFoto ? 'opacity-50 pointer-events-none' : ''}`}>
                           <span className="text-2xl">{uploadingFoto ? '⏳' : '📸'}</span>
                           {uploadingFoto && <span className="text-[8px] font-bold mt-1">Subiendo...</span>}
@@ -443,7 +495,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
                       {fotos.map((url, i) => (
                         <div key={i} className="relative w-24 h-24">
                           <img src={url} className="w-full h-full object-cover rounded-3xl shadow-lg" alt="clínica" />
-                          {!citaVisualizada && (<button type="button" onClick={() => setFotos(fotos.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-black text-white w-6 h-6 rounded-full text-[10px]">×</button>)}
+                          {!sesionVisualizada && (<button type="button" onClick={() => setFotos(fotos.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-black text-white w-6 h-6 rounded-full text-[10px]">×</button>)}
                         </div>
                       ))}
                     </div>
@@ -458,8 +510,8 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
             </fieldset>
 
             <div className="flex gap-4 pt-8 border-t border-gray-50">
-              {citaVisualizada ? (
-                <button type="button" onClick={() => generarPDF(citaVisualizada)} className="flex-1 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-gray-800 transition-all py-5">🖨️ Reimprimir Reporte ({citaVisualizada.fecha})</button>
+              {sesionVisualizada ? (
+                <button type="button" onClick={() => generarPDF(sesionVisualizada)} className="flex-1 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-gray-800 transition-all py-5">🖨️ Reimprimir Reporte ({sesionVisualizada.fecha})</button>
               ) : tabActual === 'anamnesis' ? (
                 <button type="button" disabled={loading} onClick={guardarPreClinicaYContinuar} className="flex-1 bg-[#D32F2F] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all py-5 disabled:opacity-50">{loading ? 'Guardando...' : 'Guardar Pre Clínica y Continuar ➡️'}</button>
               ) : tabActual === 'consentimiento' ? (
