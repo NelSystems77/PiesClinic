@@ -117,10 +117,10 @@ const Login = ({ onClose }: LoginProps) => {
           ×
         </button>
 
-        {/* Header rojo con logo */}
-        <div className="bg-gradient-to-br from-clinic-red to-clinic-redDark px-8 pt-10 pb-8 text-center">
+        {/* Header con logo */}
+        <div className="px-8 pt-10 pb-6 text-center">
           <div className="flex justify-center mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/30 flex items-center justify-center overflow-hidden shadow-lg">
+            <div className="w-20 h-20 rounded-2xl bg-red-50 border-2 border-red-100 flex items-center justify-center overflow-hidden shadow-sm">
               <img
                 src="/icons/logo.PNG"
                 alt="Pies Clinic"
@@ -133,10 +133,10 @@ const Login = ({ onClose }: LoginProps) => {
               <span className="text-3xl hidden items-center justify-center">👣</span>
             </div>
           </div>
-          <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+          <h2 className="text-2xl font-black text-clinic-red tracking-tight uppercase">
             {modoActivacion ? 'Activar Cuenta' : 'Pies Clinic'}
           </h2>
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/70 mt-1">
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-clinic-red/60 mt-1">
             {modoActivacion ? 'Configura tu acceso personal' : 'Acceso Profesional'}
           </p>
         </div>
