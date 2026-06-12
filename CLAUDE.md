@@ -343,6 +343,21 @@ firebase deploy --only functions          # Cloud Functions only
 
 These are extracted from `SUNANDA-BLUEPRINT.md §11` — always check the full blueprint for context.
 
+### Static assets in `public/` — siempre commitear a git
+
+Firebase Hosting solo sirve archivos que están en el repositorio. Si una carpeta en `public/` está en `.gitignore` o simplemente sin trackear (`??` en `git status`), **no se desplegará** aunque exista localmente.
+
+```bash
+# Verificar antes de deploy
+git status --short | grep "^??"
+
+# Agregar carpeta nueva de assets
+git add public/pictures/
+git commit -m "chore: agregar imágenes públicas al repo"
+```
+
+Aplica a: `public/pictures/`, `public/icons/`, cualquier asset estático que se agregue en el futuro.
+
 ### Dates — never use `.toISOString()` for date inputs
 
 Costa Rica is UTC-6. After 18:00, `.toISOString()` returns the next calendar day.
