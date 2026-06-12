@@ -4,7 +4,7 @@ import { db } from '../firebase';
 import { collection, addDoc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Usuario } from '../types';
+import { Usuario, Servicio } from '../types';
 
 interface FormularioCitaProps {
   onClose: () => void;
@@ -20,18 +20,10 @@ interface FormData {
   estado: string;
 }
 
-const SERVICIOS_DISPONIBLES = [
-  'Podología General',
-  'Uña Encarnada',
-  'Pie Diabético',
-  'Verruga Plantar',
-  'Onicomicosis',
-  'Estudio de la Pisada',
-];
-
 const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => {
   const [loading, setLoading] = useState(false);
   const [profesionales, setProfesionales] = useState<Usuario[]>([]);
+  const [serviciosDisponibles, setServiciosDisponibles] = useState<Servicio[]>([]);
   const [especialistaElegido, setEspecialistaElegido] = useState<Usuario | null>(null);
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
 
@@ -40,7 +32,7 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
     paciente: '',
     telefono: '',
     hora: '09:00',
-    servicio: SERVICIOS_DISPONIBLES[0],
+    servicio: '',
     estado: 'Pendiente',
   });
 
@@ -52,13 +44,29 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
           where('rol', '==', 'especialista'),
           where('estado', '==', 'activo')
         );
-        const querySnapshot = await getDocs(q);
-        setProfesionales(querySnapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Usuario)));
+        const snap = await getDocs(q);
+        setProfesionales(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Usuario)));
       } catch (error) {
         console.error('Error cargando especialistas:', error);
       }
     };
+
+    const obtenerServicios = async () => {
+      try {
+        const q = query(collection(db, 'servicios'), where('activo', '==', true), orderBy('nombre', 'asc'));
+        const snap = await getDocs(q);
+        const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Servicio));
+        setServiciosDisponibles(lista);
+        if (lista.length > 0) {
+          setFormData((prev) => ({ ...prev, servicio: lista[0].nombre }));
+        }
+      } catch (error) {
+        console.error('Error cargando servicios:', error);
+      }
+    };
+
     obtenerProfesionales();
+    obtenerServicios();
   }, []);
 
   const buscarPacienteExistente = async (id: string) => {
@@ -222,11 +230,15 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Servicio</label>
             <select
               name="servicio"
+              required
               className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-bold text-gray-700 cursor-pointer"
               value={formData.servicio}
               onChange={handleChange}
             >
-              {SERVICIOS_DISPONIBLES.map((s) => <option key={s} value={s}>{s}</option>)}
+              {serviciosDisponibles.length === 0
+                ? <option value="" disabled>Sin servicios activos</option>
+                : serviciosDisponibles.map((s) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)
+              }
             </select>
           </div>
 

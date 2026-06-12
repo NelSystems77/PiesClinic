@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { toLocalDateStr } from '../types';
+import { collection, addDoc, getDocs, query, where, orderBy, serverTimestamp } from 'firebase/firestore';
+import { toLocalDateStr, Servicio } from '../types';
 
 interface SolicitudCitaPublicaProps {
   onClose: () => void;
@@ -23,13 +23,31 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
     nombre: '',
     cedula: '',
     telefono: '',
-    servicio: 'Valoración Inicial',
+    servicio: '',
     fechaPreferida: '',
     jornada: 'mañana',
     notas: '',
   });
   const [loading, setLoading] = useState(false);
   const [exito, setExito] = useState(false);
+  const [serviciosPublicos, setServiciosPublicos] = useState<Servicio[]>([]);
+
+  useEffect(() => {
+    const cargar = async () => {
+      try {
+        const q = query(collection(db, 'servicios'), where('activo', '==', true), orderBy('nombre', 'asc'));
+        const snap = await getDocs(q);
+        const lista = snap.docs.map((d) => ({ id: d.id, ...d.data() } as Servicio));
+        setServiciosPublicos(lista);
+        if (lista.length > 0) {
+          setFormData((prev) => ({ ...prev, servicio: lista[0].nombre }));
+        }
+      } catch (error) {
+        console.error('Error cargando servicios:', error);
+      }
+    };
+    cargar();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,31 +162,17 @@ const SolicitudCitaPublica = ({ onClose }: SolicitudCitaPublicaProps) => {
             <div>
               <label className="block text-[10px] font-black text-gray-400 uppercase ml-2 mb-1">Servicio Deseado</label>
               <select
+                required
                 className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none cursor-pointer"
                 value={formData.servicio}
                 onChange={(e) => setFormData({ ...formData, servicio: e.target.value })}
               >
-                <option>Valoración Inicial</option>
-                <option>Podología General</option>
-                <option>Uña Encarnada</option>
-                <option>Verrugas Plantares</option>
-                <option>Otro</option>
+                {serviciosPublicos.length === 0
+                  ? <option value="">Cargando servicios...</option>
+                  : serviciosPublicos.map((s) => <option key={s.id} value={s.nombre}>{s.nombre}</option>)
+                }
               </select>
             </div>
-
-            {formData.servicio === 'Otro' && (
-              <div className="animate-in fade-in slide-in-from-top-2">
-                <label className="block text-[10px] font-black text-[#D32F2F] uppercase ml-2 mb-1">Detalle del Motivo de Consulta</label>
-                <textarea
-                  required
-                  rows={2}
-                  placeholder="Describe brevemente tu molestia..."
-                  className="w-full p-3 bg-red-50 rounded-xl font-bold text-gray-700 outline-none border border-red-100 focus:border-[#D32F2F]"
-                  value={formData.notas}
-                  onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
-                />
-              </div>
-            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>

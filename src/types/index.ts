@@ -151,6 +151,22 @@ export interface Sesion {
   atendidoAt?: Timestamp;
 }
 
+// ─── Servicio (colección: servicios) ─────────────────────────────────────────
+
+export type CategoriaServicio = 'GENERAL' | 'UÑAS' | 'BIOMECÁNICA' | 'DIABÉTICO';
+
+export interface Servicio {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  categoria: CategoriaServicio;
+  precio: number;        // CRC
+  duracion: number;      // minutos
+  activo: boolean;
+  imagenUrl?: string;    // URL Firebase Storage
+  createdAt?: Timestamp;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Convierte una fecha local a 'YYYY-MM-DD' sin bug UTC (Costa Rica = UTC-6). */

@@ -10,18 +10,20 @@ import Reportes from './Reportes';
 import CierreCaja from './CierreCaja';
 import GestionStaff from './GestionProfesionales';
 import GestionSolicitudes from './GestionSolicitudes';
+import GestionServicios from './GestionServicios';
 import DirectorioPacientes from './DirectorioPacientes';
 import { Cita, Usuario } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useConfirm } from '../hooks/useConfirm';
 
-type Vista = 'agenda' | 'staff' | 'caja' | 'reportes' | 'pacientes' | 'migracion' | 'solicitudes';
+type Vista = 'agenda' | 'staff' | 'caja' | 'reportes' | 'pacientes' | 'migracion' | 'solicitudes' | 'servicios';
 
 const Dashboard = () => {
   const { confirm, ConfirmDialog } = useConfirm();
   const { usuario, esAdmin } = useAuthStore();
   const userRole = usuario?.rol || 'especialista';
   const userEmail = usuario?.email || null;
+  const puedeGestionarServicios = esAdmin || usuario?.email?.toLowerCase() === 'diana@piesclinic.com';
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
@@ -195,6 +197,7 @@ const Dashboard = () => {
     if (!esAdmin && ['staff', 'reportes', 'caja', 'migracion', 'solicitudes', 'pacientes'].includes(vistaActual)) {
       return null;
     }
+    if (!puedeGestionarServicios && vistaActual === 'servicios') return null;
 
     switch (vistaActual) {
       case 'staff': return esAdmin ? <GestionStaff /> : null;
@@ -202,6 +205,7 @@ const Dashboard = () => {
       case 'caja': return esAdmin ? <CierreCaja fechaSeleccionada={fechaSeleccionada} /> : null;
       case 'solicitudes': return esAdmin ? <GestionSolicitudes /> : null;
       case 'pacientes': return esAdmin ? <DirectorioPacientes /> : null;
+      case 'servicios': return puedeGestionarServicios ? <GestionServicios /> : null;
 
       case 'migracion': return (
         <div className="animate-in fade-in duration-500 space-y-6">
@@ -423,6 +427,7 @@ const Dashboard = () => {
               {([
                 { key: 'agenda', label: '📅 Agenda' },
                 { key: 'staff', label: '👥 Staff' },
+                { key: 'servicios', label: '🛍️ Servicios' },
                 { key: 'caja', label: '💰 Caja' },
                 { key: 'reportes', label: '📊 Reportes' },
                 { key: 'pacientes', label: '📇 Expedientes Clínicos' },
@@ -449,6 +454,25 @@ const Dashboard = () => {
                   </span>
                 )}
               </button>
+            </div>
+          )}
+
+          {/* Tab mínimo para especialistas con permiso de gestionar servicios (ej: diana@piesclinic.com) */}
+          {!esAdmin && puedeGestionarServicios && (
+            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 gap-2">
+              {([
+                { key: 'agenda', label: '📅 Agenda' },
+                { key: 'servicios', label: '🛍️ Servicios' },
+              ] as { key: Vista; label: string }[]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setVistaActual(key)}
+                  className={`whitespace-nowrap px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${vistaActual === key ? 'bg-[#D32F2F] text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           )}
         </div>
