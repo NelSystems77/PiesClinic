@@ -332,7 +332,7 @@ const Dashboard = () => {
               </div>
             </header>
 
-            {esAdmin && <KpiCards citasHoy={citas} />}
+            {puedeGestionarServicios && <KpiCards citasHoy={citas} />}
 
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
