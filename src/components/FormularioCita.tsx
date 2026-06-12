@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase';
-import { collection, addDoc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Usuario, Servicio } from '../types';
@@ -113,9 +113,12 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
     }
     setLoading(true);
     try {
+      const cedula = formData.pacienteId.trim();
+      const nombreUpper = formData.paciente.trim().toUpperCase();
+
       await addDoc(collection(db, 'citas'), {
-        pacienteId: formData.pacienteId.trim(),
-        paciente: formData.paciente.trim().toUpperCase(),
+        pacienteId: cedula,
+        paciente: nombreUpper,
         telefono: formData.telefono.trim(),
         hora: formData.hora,
         servicio: formData.servicio,
@@ -130,6 +133,14 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
           codigo: especialistaElegido.codigo || 'N/A',
         },
       });
+
+      await setDoc(doc(db, 'pacientes', cedula), {
+        nombre: nombreUpper,
+        cedula,
+        telefono: formData.telefono.trim(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true });
+
       onClose();
     } catch (error) {
       console.error('Error al agendar:', error);
