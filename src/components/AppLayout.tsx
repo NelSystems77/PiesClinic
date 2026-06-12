@@ -63,9 +63,9 @@ const AppLayout = () => {
           <button
             type="button"
             onClick={() => setShowLogin(true)}
-            className="bg-[#D32F2F] text-white px-6 py-2 rounded-full text-sm font-semibold hover:bg-[#9A0007] transition-all shadow-md active:scale-95"
+            className="text-gray-400 text-xs border border-gray-200 px-3 py-1.5 rounded-lg hover:border-[#D32F2F] hover:text-[#D32F2F] transition-all"
           >
-            Acceder al Sistema
+            Acceso
           </button>
         )}
       </nav>

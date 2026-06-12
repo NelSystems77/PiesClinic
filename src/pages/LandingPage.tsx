@@ -115,19 +115,19 @@ const LandingPage = () => {
             Atención profesional, protocolos de bioseguridad y calidez humana.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             <Link
               to="/booking"
-              className="bg-[#D32F2F] text-white px-8 py-4 rounded-xl font-bold text-base md:text-lg shadow-2xl hover:bg-[#b71c1c] transition-all active:scale-95 text-center w-full sm:w-auto"
+              className="bg-[#D32F2F] text-white px-8 py-4 rounded-xl font-bold text-base md:text-lg shadow-2xl hover:bg-[#b71c1c] transition-all active:scale-95 text-center w-full sm:w-auto sm:self-start"
             >
-              Agendar Cita →
+              Agendar mi Cita →
             </Link>
             <button
               type="button"
               onClick={openLogin}
-              className="bg-white/10 backdrop-blur-sm text-white border border-white/20 px-8 py-4 rounded-xl font-bold text-base md:text-lg hover:bg-white/20 transition-all active:scale-95 w-full sm:w-auto"
+              className="text-gray-500 text-sm hover:text-white transition-colors self-start underline underline-offset-4"
             >
-              Acceso Especialistas
+              Acceso especialistas
             </button>
           </div>
 
@@ -447,7 +447,7 @@ const LandingPage = () => {
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="bg-white text-gray-600 border border-gray-200 w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:bg-gray-50 hover:text-[#D32F2F] transition-all hover:scale-110 active:scale-95"
+            className="bg-white text-[#D32F2F] border border-red-100 w-11 h-11 rounded-full flex items-center justify-center shadow-lg hover:bg-red-50 transition-all hover:scale-110 active:scale-95"
             aria-label="Volver arriba"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5 fill-none stroke-current stroke-2" strokeLinecap="round" strokeLinejoin="round">
