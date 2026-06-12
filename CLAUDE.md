@@ -308,7 +308,7 @@ Priority order based on business value and blueprint §13 checklist.
 
 ### Phase 4 — Landing Page
 
-- [ ] **Full landing page** — replace current hero with complete sections: Hero, Services catalog (dynamic from Firestore), Before/After slider, About professional, Testimonials, FAQ, CTA, WhatsApp float. See blueprint §6.1 and §13.3.
+- [x] **Full landing page** — `LandingPage.tsx` completa (2026-06-12): Hero con `consultorio.jpg`, strip de 3 pilares, servicios dinámicos desde Firestore, sección "¿Por qué elegirnos?" con `servicios.jpg`, PYME certificada con `pymecertificada.jpg`, ubicación con `ubicacion.jpg` (Plaza Madero Coronado 2° piso local 5), FAQ accordion, CTA final, botón WhatsApp flotante (+50687409343) + Back to Top. Mobile-first responsive. Fix logo AppLayout: `/icons/logo.PNG`.
 - [ ] **Public booking page** — replace modal with dedicated `/booking` route.
 - [ ] **SEO** — meta tags, Schema.org JSON-LD for local business.
 
@@ -503,4 +503,4 @@ When migrating (Phase 1):
 
 ---
 
-*Last updated: 2026-06-12 — Phase 2 completa, KPIs completados, Firestore rules actualizadas*
+*Last updated: 2026-06-12 — Phase 4 Landing Page completada (hero, servicios dinámicos, about, PYME, ubicación, FAQ, CTA, WhatsApp float + back-to-top)*
