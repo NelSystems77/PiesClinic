@@ -16,6 +16,7 @@ import { Cita, Usuario, ESTADOS_FINALIZADOS } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useConfirm } from '../hooks/useConfirm';
 import EstadoCitaBadge from './EstadoCitaBadge';
+import KpiCards from './KpiCards';
 
 type Vista = 'agenda' | 'staff' | 'caja' | 'reportes' | 'pacientes' | 'migracion' | 'solicitudes' | 'servicios';
 
@@ -330,6 +331,8 @@ const Dashboard = () => {
                 </button>
               </div>
             </header>
+
+            {esAdmin && <KpiCards citasHoy={citas} />}
 
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">

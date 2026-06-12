@@ -7,10 +7,9 @@ service cloud.firestore {
     function estaAutenticado() {
       return request.auth != null;
     }
-    
+
     function esAdmin() {
-      // Tu email maestro o rol en BD
-      return request.auth.token.email == 'admin@nelsystems.com' || 
+      return request.auth.token.email == 'admin@nelsystems.com' ||
              (exists(/databases/$(database)/documents/usuarios/$(request.auth.uid)) &&
               get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.rol in ['admin', 'superadmin']);
     }
@@ -18,24 +17,42 @@ service cloud.firestore {
     // --- REGLAS ---
 
     match /usuarios/{userId} {
-      // 1. LEER: Todo el mundo logueado (Para que Mario vea el Dashboard)
       allow read: if estaAutenticado();
-      
-      // 2. CREAR Y BORRAR: Solo el Admin (Nadie más puede contratar o despedir)
       allow create, delete: if esAdmin();
-      
-      // 3. ACTUALIZAR (La Clave): El Admin PUEDE O... El propio usuario PUEDE (Para activarse)
       allow update: if esAdmin() || request.auth.uid == userId;
     }
 
-    // Citas: Mario necesita poder crear citas
     match /citas/{citaId} {
       allow read, create, update: if estaAutenticado();
       allow delete: if esAdmin();
     }
 
-    match /pacientes/{document=**} {
-       allow read, write: if estaAutenticado();
+    match /pacientes/{pacienteId} {
+      allow read, write: if estaAutenticado();
+    }
+
+    match /expedientes/{pacienteId} {
+      allow read, write: if estaAutenticado();
+
+      match /sesiones/{sesionId} {
+        allow read, write: if estaAutenticado();
+      }
+    }
+
+    // Wildcard necesario para collectionGroup('sesiones') — usado en KPIs
+    match /{path=**}/sesiones/{sesionId} {
+      allow read: if estaAutenticado();
+      allow write: if estaAutenticado();
+    }
+
+    match /servicios/{servicioId} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
+    match /solicitudes/{id} {
+      allow create: if true;
+      allow read, update, delete: if esAdmin();
     }
   }
 }
