@@ -41,7 +41,7 @@ const CierreCaja = ({ fechaSeleccionada }: CierreCajaProps) => {
         const q = query(
           collection(db, 'citas'),
           where('fecha', '==', fechaDoc),
-          where('estado', '==', 'Atendido')
+          where('estado', 'in', ['Atendido', 'COMPLETED'])
         );
         const querySnapshot = await getDocs(q);
         const ingresos: Reporte = { total: 0, efectivo: 0, sinpe: 0, tarjeta: 0, conteo: 0, detalles: [] };

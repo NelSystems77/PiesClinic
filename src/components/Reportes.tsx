@@ -75,7 +75,6 @@ const Reportes = ({ fechaSeleccionada }: ReportesProps) => {
           collection(db, 'citas'),
           where('fecha', '>=', inicioMes),
           where('fecha', '<=', finMes),
-          where('estado', '==', 'Atendido'),
           orderBy('fecha', 'asc')
         );
 
@@ -88,6 +87,7 @@ const Reportes = ({ fechaSeleccionada }: ReportesProps) => {
 
         querySnapshot.forEach((d) => {
           const data = d.data();
+          if (!['Atendido', 'COMPLETED'].includes(data.estado)) return;
           const monto = Number(data.totalPagado ?? data.costo ?? 0);
           total += monto;
           atendidos++;

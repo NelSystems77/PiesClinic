@@ -12,9 +12,10 @@ import GestionStaff from './GestionProfesionales';
 import GestionSolicitudes from './GestionSolicitudes';
 import GestionServicios from './GestionServicios';
 import DirectorioPacientes from './DirectorioPacientes';
-import { Cita, Usuario } from '../types';
+import { Cita, Usuario, ESTADOS_FINALIZADOS } from '../types';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useConfirm } from '../hooks/useConfirm';
+import EstadoCitaBadge from './EstadoCitaBadge';
 
 type Vista = 'agenda' | 'staff' | 'caja' | 'reportes' | 'pacientes' | 'migracion' | 'solicitudes' | 'servicios';
 
@@ -122,10 +123,14 @@ const Dashboard = () => {
       collection(db, 'citas'),
       where('fecha', '==', fechaQuery),
       where('profesionalId', '==', origenId),
-      where('estado', '!=', 'Atendido')
     );
     const snap = await getDocs(q);
-    setCitasParaMigrar(snap.docs.map((d) => ({ id: d.id, ...d.data() } as Cita)));
+    // Excluir estados finalizados client-side para evitar índices compuestos extra
+    setCitasParaMigrar(
+      snap.docs
+        .map((d) => ({ id: d.id, ...d.data() } as Cita))
+        .filter((c) => !ESTADOS_FINALIZADOS.includes(c.estado) && c.estado !== 'CANCELLED' && c.estado !== 'NO_SHOW')
+    );
     setIdsSeleccionados([]);
   };
 
@@ -334,12 +339,13 @@ const Dashboard = () => {
                       <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest">Hora / Especialista</th>
                       <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest">Paciente</th>
                       <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Servicio</th>
+                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Estado</th>
                       <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {loading ? (
-                      <tr><td colSpan={4} className="text-center py-20 text-[10px] font-black text-gray-400 animate-pulse">CARGANDO AGENDA...</td></tr>
+                      <tr><td colSpan={5} className="text-center py-20 text-[10px] font-black text-gray-400 animate-pulse">CARGANDO AGENDA...</td></tr>
                     ) : citas.length > 0 ? (
                       citas.map((cita) => (
                         <tr key={cita.id} className="hover:bg-gray-50/50 transition-all">
@@ -357,14 +363,21 @@ const Dashboard = () => {
                                 rel="noreferrer"
                                 className="inline-flex items-center gap-1 mt-2 text-[9px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg hover:bg-green-100 transition-colors"
                               >
-                                💬 Confirmar
+                                💬 WhatsApp
                               </a>
                             )}
                           </td>
                           <td className="px-8 py-6 text-center">
-                            <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border ${cita.estado === 'Atendido' ? 'bg-gray-100 text-gray-600 border-gray-200' : 'bg-red-50 text-[#D32F2F] border-red-100'}`}>
+                            <span className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border bg-gray-50 text-gray-600 border-gray-200">
                               {cita.servicio}
                             </span>
+                          </td>
+                          <td className="px-8 py-6 text-center">
+                            <EstadoCitaBadge
+                              citaId={cita.id}
+                              estado={cita.estado}
+                              puedeEditar={esAdmin}
+                            />
                           </td>
                           <td className="px-8 py-6">
                             <div className="flex items-center justify-center gap-2">
@@ -372,12 +385,16 @@ const Dashboard = () => {
                                 type="button"
                                 onClick={() => setCitaSeleccionada(cita)}
                                 className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md ${
-                                  cita.estado === 'Atendido'
+                                  ESTADOS_FINALIZADOS.includes(cita.estado) || cita.estado === 'CANCELLED' || cita.estado === 'NO_SHOW'
                                     ? 'bg-white text-[#D32F2F] border-2 border-[#D32F2F] hover:bg-red-50'
                                     : 'bg-[#D32F2F] text-white hover:bg-red-700'
                                 }`}
                               >
-                                {cita.estado === 'Atendido' ? 'Ver Ficha' : 'Atender'}
+                                {ESTADOS_FINALIZADOS.includes(cita.estado) || cita.estado === 'CANCELLED' || cita.estado === 'NO_SHOW'
+                                  ? 'Ver Ficha'
+                                  : cita.estado === 'IN_PROGRESS'
+                                    ? 'Continuar'
+                                    : 'Atender'}
                               </button>
                               {esAdmin && (
                                 <button
@@ -395,7 +412,7 @@ const Dashboard = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={4} className="text-center py-20 text-[10px] font-black text-gray-400 uppercase">No hay citas para esta fecha</td></tr>
+                      <tr><td colSpan={5} className="text-center py-20 text-[10px] font-black text-gray-400 uppercase">No hay citas para esta fecha</td></tr>
                     )}
                   </tbody>
                 </table>

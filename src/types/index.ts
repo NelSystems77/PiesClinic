@@ -24,6 +24,28 @@ export interface Usuario {
 
 export type EstadoCita = "Pendiente" | "Atendido" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
 
+export interface EstadoConfig {
+  label: string;
+  color: string;
+  bg: string;
+  border: string;
+  icon: string;
+}
+
+export const ESTADO_CONFIG: Record<EstadoCita, EstadoConfig> = {
+  Pendiente:   { label: 'Pendiente',      color: 'text-amber-700',  bg: 'bg-amber-50',   border: 'border-amber-200',  icon: '⏳' },
+  CONFIRMED:   { label: 'Confirmada',     color: 'text-blue-700',   bg: 'bg-blue-50',    border: 'border-blue-200',   icon: '✅' },
+  IN_PROGRESS: { label: 'En Atención',    color: 'text-purple-700', bg: 'bg-purple-50',  border: 'border-purple-200', icon: '🩺' },
+  COMPLETED:   { label: 'Completada',     color: 'text-green-700',  bg: 'bg-green-50',   border: 'border-green-200',  icon: '✔️' },
+  Atendido:    { label: 'Atendida',       color: 'text-green-700',  bg: 'bg-green-50',   border: 'border-green-200',  icon: '✔️' },
+  CANCELLED:   { label: 'Cancelada',      color: 'text-gray-500',   bg: 'bg-gray-100',   border: 'border-gray-200',   icon: '✕' },
+  NO_SHOW:     { label: 'No se presentó', color: 'text-red-700',    bg: 'bg-red-50',     border: 'border-red-200',    icon: '⚠️' },
+};
+
+export const ESTADOS_FINALIZADOS: EstadoCita[] = ['Atendido', 'COMPLETED'];
+export const ESTADOS_ACTIVOS: EstadoCita[] = ['Pendiente', 'CONFIRMED', 'IN_PROGRESS'];
+export const TODOS_ESTADOS_WORKFLOW: EstadoCita[] = ['Pendiente', 'CONFIRMED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'];
+
 // ─── Sub-tipos de Cita ────────────────────────────────────────────────────────
 
 export interface EspecialistaCita {
