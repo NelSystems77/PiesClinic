@@ -96,9 +96,9 @@ const LandingPage = () => {
         <img
           src="/pictures/consultorio.jpg"
           alt="Consultorio Pies Clinic"
-          className="absolute inset-0 w-full h-full object-cover object-center opacity-35"
+          className="absolute inset-0 w-full h-full object-cover object-center opacity-60"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/95 via-gray-900/70 to-gray-900/20" />
+        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/90 via-gray-900/50 to-gray-900/10" />
 
         <div className="relative z-10 max-w-3xl mx-auto px-6 md:px-16 py-24 w-full">
           <span className="inline-block bg-[#D32F2F] text-white text-xs font-bold tracking-[0.2em] uppercase px-4 py-2 rounded-full mb-6">
