@@ -76,7 +76,8 @@ src/
     ├── ProtectedRoute.tsx         # Redirects to / if no Firebase auth session
     ├── Login.tsx                  # Auth modal: login + account activation
     ├── Dashboard.tsx              # Main staff view — tab navigation
-    ├── FormularioCita.tsx         # Create appointment form
+    ├── FormularioCita.tsx         # Create appointment form — slot picker + alertas médicas por cédula
+    ├── SlotPicker.tsx             # Slot picker reutilizable — grilla 08:00–17:00 / 30 min, conflictos en tiempo real
     ├── SolicitudCitaPublica.tsx   # Public booking request form — rendered as page at /booking
     ├── FichaClinica.tsx           # Medical record modal
     ├── DirectorioPacientes.tsx    # Patient directory + clinical records
@@ -248,6 +249,10 @@ src/
 - PWA icons procesados con esquinas redondeadas (estilo iOS/Android squircle) y sombra interior difuminada. Script de regeneración: `node scripts/round-icons.mjs` (usa `public/icons/logo.PNG` como fuente)
 - Firebase Hosting with SPA rewrite
 - Before/after image slider en landing (`BeforeAfterSlider` en `LandingPage.tsx`) — sección "Cambios que se notan": drag en desktop + touch en móvil, `clipPath` para transición fluida, etiquetas ANTES/DESPUÉS, handle con flechas. Imágenes en `public/pictures/antes.jpg` y `public/pictures/despues.jpg`, trackeadas en git. Completado 2026-06-13.
+- Slot picker con detección de conflictos (`SlotPicker.tsx`) — grilla de 19 slots (08:00–17:00 cada 30 min); al seleccionar especialista+fecha consulta `citas` en Firestore y deshabilita/tacha los slots ocupados; resetea selección al cambiar especialista o fecha; usado en `FormularioCita` y `GestionSolicitudes`. Completado 2026-06-13.
+- Alertas médicas en `FormularioCita` — al ingresar 9 dígitos de cédula, hace 3 consultas en paralelo (`Promise.all`): última cita (auto-rellena nombre/teléfono), `expedientes/{cedula}` (anamnesis) y subcolección `sesiones` (cuenta). Muestra chips: "Paciente nuevo" (azul) o "N sesiones previas" (gris), condiciones críticas en rojo (Diabético, Hemofilia, VIH/SIDA), condiciones secundarias en ámbar (Hipertensión, Asma, Enf. Vascular, Alergias). Los chips se limpian si la cédula baja de 9 dígitos. Completado 2026-06-13.
+- WhatsApp post-confirmación en `GestionSolicitudes` — al confirmar una solicitud web el modal transiciona a pantalla de éxito con resumen (fecha larga en español, hora, servicio, profesional) y botón verde para enviar mensaje de confirmación pre-redactado al paciente. Botón "Cerrar sin enviar" para omitirlo. Completado 2026-06-13.
+- Fix `GestionSolicitudes`: ahora escribe `pacientes/{cedula}` con `merge: true` al confirmar solicitud web — antes solo `FormularioCita` lo hacía; pacientes que llegaban por la web nunca aparecían en el directorio. Completado 2026-06-13.
 
 ---
 
@@ -300,6 +305,11 @@ Priority order based on business value and blueprint §13 checklist.
 - [x] **Service catalog** — CRUD with image upload, active/inactive, pricing in CRC. GestionServicios.tsx: tab en Dashboard (admin/superadmin + diana@piesclinic.com), 4 categorías podológicas (GENERAL/UÑAS/BIOMECÁNICA/DIABÉTICO). FormularioCita y SolicitudCitaPublica cargan servicios activos desde Firestore. Completado 2026-06-11.
 - [x] **Appointment status workflow** — `EstadoCitaBadge` component con dropdown para admins. Estados: `CONFIRMED`, `IN_PROGRESS`, `COMPLETED`, `CANCELLED`, `NO_SHOW`. `ESTADO_CONFIG` + `TODOS_ESTADOS_WORKFLOW` en `types/index.ts`. Columna "Estado" en tabla de agenda. Reportes y CierreCaja incluyen `COMPLETED` además de `Atendido`. Completado 2026-06-11.
 - [x] **Client profile page** — `DirectorioPacientes` modal enriquecido: stats chips (sesiones, ₡ invertido, citas totales, fecha desde, condiciones médicas activas), tab Historial muestra sesiones completadas con diagnósticos/tratamiento/costo, tab Datos con anamnesis completa. `FormularioCita` auto-crea/actualiza `pacientes/{cedula}` con `setDoc(merge: true)`. Completado 2026-06-12.
+- [x] **Scheduling UX improvements** — Completado 2026-06-13:
+  - `SlotPicker.tsx`: grilla reutilizable 08:00–17:00 cada 30 min con detección de conflictos en tiempo real (Firestore query por `profesionalId + fecha`). Integrado en `FormularioCita` y `GestionSolicitudes`.
+  - Alertas médicas en `FormularioCita`: chips de condiciones clínicas + sesiones previas al buscar cédula (3 reads en paralelo con `Promise.all`).
+  - WhatsApp post-confirmación en `GestionSolicitudes`: pantalla de éxito con resumen y mensaje pre-redactado tras agendar desde solicitud web.
+  - Fix: `GestionSolicitudes` ahora escribe `pacientes/{cedula}` al confirmar solicitud web (bug silencioso — los pacientes web nunca aparecían en el directorio).
 
 ### Phase 3 — Financial & Operations
 
@@ -546,6 +556,35 @@ if (appointment.estado === AppointmentStatus.CONFIRMED) ...
 // or for current string-based system:
 if (appointment.estado === 'CONFIRMED') ...
 ```
+
+### SlotPicker — detección de conflictos sin índice compuesto
+
+Para cargar horarios ocupados de un especialista en una fecha, usar dos `where` de igualdad. Firestore NO requiere índice compuesto para filtros de igualdad múltiples (solo lo requiere para combinaciones con rango o `orderBy`):
+
+```ts
+const snap = await getDocs(query(
+  collection(db, 'citas'),
+  where('profesionalId', '==', profesionalId),  // igualdad
+  where('fecha', '==', fecha)                    // igualdad — sin índice
+));
+const ocupadas = snap.docs.map(d => d.data().hora as string);
+```
+
+`HORARIO_SLOTS` en `SlotPicker.tsx` genera los 19 slots (08:00–17:00 cada 30 min). El componente es puramente presentacional: recibe `horasOcupadas`, `value` y `onChange` — la lógica de carga vive en el componente padre. Resetear `hora` en el onChange del especialista/fecha (no dentro del `useEffect`) evita dependencias circulares.
+
+### Alertas médicas — 3 reads en paralelo al buscar cédula
+
+En `FormularioCita`, al completar 9 dígitos de cédula se hacen tres consultas Firestore concurrentes con `Promise.all`. Usar `Promise.all` en lugar de awaits secuenciales porque las tres lecturas son independientes:
+
+```ts
+const [citasSnap, expSnap, sesSnap] = await Promise.all([
+  getDocs(query(collection(db, 'citas'), where('pacienteId', '==', cedula), ...)),
+  getDoc(doc(db, 'expedientes', cedula)),
+  getDocs(collection(db, 'expedientes', cedula, 'sesiones')),
+]);
+```
+
+Si `expSnap.exists()` es `false` (paciente nuevo sin expediente), `sesSnap.size` será 0 — mostrar chip "Paciente nuevo". No lanzar error si el expediente no existe; simplemente mostrar el estado de paciente nuevo.
 
 ---
 
