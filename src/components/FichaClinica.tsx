@@ -46,6 +46,10 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const sigCanvas = useRef<SignatureCanvas>(null);
   const panelDerechoRef = useRef<HTMLDivElement>(null);
+  const sesionCargadaRef = useRef<{
+    hallazgos: string; diagnosticosSeleccionados: string[]; tratamiento: string;
+    seguimiento: string; fotos: string[]; costo: string; metodoPago: string;
+  } | null>(null);
   const [firmaDigital, setFirmaDigital] = useState<string | null>(cita.firmaUrl ?? null);
   const [firmaDataURL, setFirmaDataURL] = useState<string | null>(null);
   const [uploadingFirma, setUploadingFirma] = useState(false);
@@ -97,13 +101,23 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
         const sesionSnap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id));
         if (sesionSnap.exists()) {
           const ses = sesionSnap.data() as Sesion;
-          setHallazgos(ses.hallazgos ?? '');
-          setDiagnosticosSeleccionados(ses.diagnosticosSeleccionados ?? []);
-          setTratamiento(ses.tratamiento ?? '');
-          setSeguimiento(ses.seguimiento ?? '');
-          setFotos(ses.fotos ?? []);
-          setCosto(ses.costo?.toString() ?? '');
-          setMetodoPago(ses.metodoPago ?? 'Efectivo');
+          const cargada = {
+            hallazgos: ses.hallazgos ?? '',
+            diagnosticosSeleccionados: ses.diagnosticosSeleccionados ?? [],
+            tratamiento: ses.tratamiento ?? '',
+            seguimiento: ses.seguimiento ?? '',
+            fotos: ses.fotos ?? [],
+            costo: ses.costo?.toString() ?? '',
+            metodoPago: ses.metodoPago ?? 'Efectivo',
+          };
+          sesionCargadaRef.current = cargada;
+          setHallazgos(cargada.hallazgos);
+          setDiagnosticosSeleccionados(cargada.diagnosticosSeleccionados);
+          setTratamiento(cargada.tratamiento);
+          setSeguimiento(cargada.seguimiento);
+          setFotos(cargada.fotos);
+          setCosto(cargada.costo);
+          setMetodoPago(cargada.metodoPago);
           if (ses.consentimientoInfo) {
             setConsentimientoData(ses.consentimientoInfo);
             setCommittedConsentimiento(ses.consentimientoInfo);
@@ -142,13 +156,14 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
 
   const volverACitaActual = () => {
     setSesionVisualizada(null);
-    setHallazgos(cita.hallazgos ?? '');
-    setDiagnosticosSeleccionados(cita.diagnosticosSeleccionados ?? []);
-    setTratamiento(cita.tratamiento ?? '');
-    setSeguimiento(cita.seguimiento ?? '');
-    setFotos(cita.fotos ?? []);
-    setCosto(cita.costo?.toString() ?? '');
-    setMetodoPago(cita.metodoPago ?? 'Efectivo');
+    const src = sesionCargadaRef.current;
+    setHallazgos(src?.hallazgos ?? cita.hallazgos ?? '');
+    setDiagnosticosSeleccionados(src?.diagnosticosSeleccionados ?? cita.diagnosticosSeleccionados ?? []);
+    setTratamiento(src?.tratamiento ?? cita.tratamiento ?? '');
+    setSeguimiento(src?.seguimiento ?? cita.seguimiento ?? '');
+    setFotos(src?.fotos ?? cita.fotos ?? []);
+    setCosto(src?.costo ?? cita.costo?.toString() ?? '');
+    setMetodoPago(src?.metodoPago ?? cita.metodoPago ?? 'Efectivo');
     setFirmaDigital(committedFirmaDigital);
     setConsentimientoData(committedConsentimiento);
     setTabActual('atencion');
@@ -359,7 +374,7 @@ const FichaClinica = ({ cita, onClose }: FichaClinicaProps) => {
         <div className="md:w-64 bg-[#F8F9FA] p-6 border-r flex flex-col gap-3">
           <button type="button" onClick={() => setTabActual('anamnesis')} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'anamnesis' ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>1. Pre Clínica</button>
           <button type="button" onClick={() => setTabActual('consentimiento')} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'consentimiento' ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>2. Consentimiento</button>
-          <button type="button" onClick={() => { volverACitaActual(); setTabActual('atencion'); }} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'atencion' && !sesionVisualizada ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>3. Atención Actual</button>
+          <button type="button" onClick={() => { if (sesionVisualizada) volverACitaActual(); else setTabActual('atencion'); }} className={`p-4 rounded-2xl font-black text-[10px] uppercase transition-all ${tabActual === 'atencion' && !sesionVisualizada ? 'bg-[#D32F2F] text-white shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}>3. Atención Actual</button>
 
           <div className="mt-8 flex-1 flex flex-col min-h-0">
             <p className="text-[9px] font-black text-gray-400 uppercase mb-4 px-2">Historial Previo</p>
