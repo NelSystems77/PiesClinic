@@ -264,6 +264,10 @@ src/
   - El contenedor de tabs (`Dashboard.tsx`) tenía `overflow-x-auto no-scrollbar` pero sin indicación visual de que se podía deslizar — tabs como "Expedientes" y "Agendas" quedaban ocultos sin pista.
   - Solución: wrapper `relative` + capa `pointer-events-none` con `bg-gradient-to-l from-white` en el borde derecho. Siempre visible, indica desplazamiento sin ocupar espacio.
   - Auto-scroll: `useRef` en el scroll container + `useEffect` que llama `scrollIntoView({ inline: 'center', behavior: 'smooth' })` sobre el botón `data-active="true"` cada vez que cambia `vistaActual`.
+  - Solicitudes unificado al array de tabs (eliminado botón separado); badge de conteo renderizado condicionalmente dentro del `.map()` con `key === 'solicitudes'`.
+- **Tabs Dashboard — reorden** — Completado 2026-06-13:
+  - Nuevo orden: Agenda → Solicitudes → Servicios → Caja → Reportes → Expedientes → Agendas → Staff.
+  - Solicitudes subió a posición 2 (alta frecuencia de uso); Staff bajó al final (uso ocasional — gestión de personal).
 
 ---
 
@@ -759,4 +763,4 @@ When migrating (Phase 1):
 
 ---
 
-*Last updated: 2026-06-13 — Tabs Dashboard: fade gradient + auto-scroll con useRef/scrollIntoView para indicar tabs ocultos en móvil; UX/UI mobile-first + accesibilidad: navbar sticky, bottom sheet modal, SlotPicker responsivo, text mínimo text-xs (WCAG), contraste corregido, tokens de diseño extendidos*
+*Last updated: 2026-06-13 — Tabs Dashboard: reorden (Solicitudes a pos 2, Staff al final), fade gradient + auto-scroll, unificación de botón Solicitudes al array; UX/UI mobile-first + accesibilidad completada*
