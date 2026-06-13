@@ -224,48 +224,62 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-center justify-center z-[200] p-4">
-      <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+    /* Overlay: ocupa pantalla completa en móvil, centrado en sm+ */
+    <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-[200]">
+      <div className="bg-white w-full sm:max-w-md sm:rounded-[2.5rem] rounded-t-[2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 sm:zoom-in duration-300 max-h-[96dvh] sm:max-h-[90vh] flex flex-col">
 
-        <div className="bg-[#D32F2F] p-8 text-white text-center">
-          <h3 className="text-xl font-black uppercase tracking-widest">Nueva Cita</h3>
-          <p className="text-[10px] opacity-80 uppercase font-black mt-1">
-            {format(fechaSeleccionada, "EEEE dd 'de' MMMM", { locale: es })}
+        {/* Header del modal */}
+        <div className="bg-[#D32F2F] px-6 py-5 sm:p-8 text-white text-center flex-shrink-0">
+          <h3 className="text-lg sm:text-xl font-bold uppercase tracking-wider">Nueva Cita</h3>
+          <p className="text-xs opacity-80 mt-1 font-medium capitalize">
+            {format(fechaSeleccionada, "EEEE, d 'de' MMMM", { locale: es })}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-4 overflow-y-auto max-h-[75vh]">
+        <form onSubmit={handleSubmit} className="px-4 sm:px-8 py-4 sm:py-6 space-y-4 overflow-y-auto scrollbar-thin flex-1">
+
+          {/* Cédula */}
           <div className="relative">
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Cédula / ID</label>
+            <label className="text-xs font-semibold uppercase text-gray-500 mb-1.5 ml-1 block tracking-wide">
+              Cédula / ID
+            </label>
             <input
               required
               name="pacienteId"
               type="text"
+              inputMode="numeric"
               maxLength={9}
-              placeholder="9 Dígitos"
-              className={`w-full bg-gray-50 border-2 rounded-2xl p-4 outline-none font-bold text-gray-700 transition-all ${buscandoPaciente ? 'border-blue-400 animate-pulse' : 'border-transparent focus:border-red-500'}`}
+              placeholder="Ingrese 9 dígitos"
+              className={`w-full bg-gray-50 border-2 rounded-2xl px-4 py-3.5 outline-none font-semibold text-gray-800 text-base transition-all ${
+                buscandoPaciente
+                  ? 'border-blue-300 bg-blue-50/30'
+                  : 'border-gray-100 focus:border-[#D32F2F] focus:bg-white'
+              }`}
               value={formData.pacienteId}
               onChange={handleChange}
             />
-            {buscandoPaciente && <span className="absolute right-4 top-10 text-[9px] font-black text-blue-500 uppercase">Buscando...</span>}
+            {buscandoPaciente && (
+              <span className="absolute right-4 top-[42px] text-xs font-semibold text-blue-500">Buscando...</span>
+            )}
           </div>
 
+          {/* Alertas médicas del paciente */}
           {alertaPaciente && (
-            <div className="flex flex-wrap gap-1.5 -mt-1 px-1">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+            <div className="flex flex-wrap gap-1.5 px-1">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${
                 alertaPaciente.sesiones === 0
-                  ? 'bg-blue-50 text-blue-500'
-                  : 'bg-gray-100 text-gray-500'
+                  ? 'bg-blue-50 text-blue-600 border border-blue-200'
+                  : 'bg-gray-100 text-gray-600'
               }`}>
                 {alertaPaciente.sesiones === 0 ? '✦ Paciente nuevo' : `${alertaPaciente.sesiones} sesiones previas`}
               </span>
               {alertaPaciente.condiciones.map((c) => (
                 <span
                   key={c.label}
-                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${
                     c.variant === 'danger'
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-amber-100 text-amber-700'
+                      ? 'bg-red-50 text-red-700 border-red-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}
                 >
                   ⚠ {c.label}
@@ -274,36 +288,46 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             </div>
           )}
 
+          {/* Nombre */}
           <div>
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Paciente</label>
+            <label className="text-xs font-semibold uppercase text-gray-500 mb-1.5 ml-1 block tracking-wide">
+              Nombre del paciente
+            </label>
             <input
               required
               name="paciente"
-              placeholder="NOMBRE COMPLETO"
-              className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-black uppercase text-gray-700"
+              placeholder="Nombre completo"
+              className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#D32F2F] focus:bg-white rounded-2xl px-4 py-3.5 outline-none font-semibold uppercase text-gray-800 text-sm transition-all"
               value={formData.paciente}
               onChange={handleChange}
             />
           </div>
 
+          {/* Teléfono */}
           <div>
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Teléfono</label>
+            <label className="text-xs font-semibold uppercase text-gray-500 mb-1.5 ml-1 block tracking-wide">
+              Teléfono
+            </label>
             <input
               required
               name="telefono"
               type="tel"
+              inputMode="tel"
               placeholder="0000-0000"
-              className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-bold text-gray-700"
+              className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#D32F2F] focus:bg-white rounded-2xl px-4 py-3.5 outline-none font-semibold text-gray-800 text-base transition-all"
               value={formData.telefono}
               onChange={handleChange}
             />
           </div>
 
+          {/* Especialista */}
           <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
-            <label className="text-[10px] font-black uppercase text-red-600 mb-2 ml-1 block tracking-widest">Asignar Especialista</label>
+            <label className="text-xs font-semibold uppercase text-[#D32F2F] mb-2 block tracking-wide">
+              Asignar especialista
+            </label>
             <select
               required
-              className="w-full bg-white rounded-xl p-3 outline-none font-bold text-gray-700 cursor-pointer shadow-sm"
+              className="w-full bg-white rounded-xl px-4 py-3 outline-none font-semibold text-gray-700 text-sm cursor-pointer shadow-sm border border-red-100 focus:ring-2 focus:ring-[#D32F2F]/20 transition-all"
               onChange={(e) => {
                 const pro = profesionales.find((p) => p.id === e.target.value);
                 setEspecialistaElegido(pro || null);
@@ -321,8 +345,11 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             </select>
           </div>
 
+          {/* Horario */}
           <div>
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 block tracking-widest">Horario</label>
+            <label className="text-xs font-semibold uppercase text-gray-500 mb-2 ml-1 block tracking-wide">
+              Horario disponible
+            </label>
             <SlotPicker
               horasOcupadas={horasOcupadas}
               value={formData.hora}
@@ -332,12 +359,15 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             />
           </div>
 
+          {/* Servicio */}
           <div>
-            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Servicio</label>
+            <label className="text-xs font-semibold uppercase text-gray-500 mb-1.5 ml-1 block tracking-wide">
+              Servicio
+            </label>
             <select
               name="servicio"
               required
-              className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-bold text-gray-700 cursor-pointer"
+              className="w-full bg-gray-50 border-2 border-gray-100 focus:border-[#D32F2F] focus:bg-white rounded-2xl px-4 py-3.5 outline-none font-semibold text-gray-700 text-sm cursor-pointer transition-all"
               value={formData.servicio}
               onChange={handleChange}
             >
@@ -348,14 +378,21 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             </select>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-4 text-gray-400 font-black uppercase text-[10px] tracking-widest">Cancelar</button>
+          {/* Acciones */}
+          <div className="flex gap-3 pt-2 pb-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3.5 text-sm font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 hover:border-gray-300 rounded-2xl transition-all"
+            >
+              Cancelar
+            </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-[2] bg-gray-900 text-white py-4 rounded-2xl font-black shadow-xl hover:bg-black transition-all disabled:opacity-50 uppercase text-[10px] tracking-widest"
+              className="flex-[2] bg-[#D32F2F] text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-[#9A0007] shadow-md hover:shadow-clinic transition-all disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
             >
-              {loading ? 'Agendando...' : 'Confirmar Cita'}
+              {loading ? 'Agendando...' : 'Confirmar cita'}
             </button>
           </div>
         </form>

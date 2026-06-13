@@ -221,7 +221,7 @@ const Dashboard = () => {
               <p className="text-gray-400 text-xs font-bold uppercase mt-1">Reasignación de Pacientes</p>
             </div>
             <div className="w-full md:w-auto">
-              <label className="text-[9px] font-black text-gray-400 uppercase block mb-1">Fecha</label>
+              <label className="text-xs font-black text-gray-400 uppercase block mb-1">Fecha</label>
               <input type="date" value={format(fechaSeleccionada, 'yyyy-MM-dd')} onChange={handleFechaChange} className="w-full md:w-auto bg-white border border-gray-200 px-4 py-3 rounded-xl font-bold shadow-sm outline-none" />
             </div>
           </header>
@@ -229,7 +229,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
               <div className="mb-6">
-                <label className="text-[10px] font-black text-[#D32F2F] uppercase block mb-2">1. Profesional Origen</label>
+                <label className="text-xs font-black text-[#D32F2F] uppercase block mb-2">1. Profesional Origen</label>
                 <select className="w-full p-4 bg-gray-50 rounded-xl font-bold border-none outline-none" value={origenId} onChange={(e) => setOrigenId(e.target.value)}>
                   <option value="">Seleccione Profesional...</option>
                   {profesionales.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -238,11 +238,11 @@ const Dashboard = () => {
               {origenId && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase">Citas Pendientes</p>
+                    <p className="text-xs font-black text-gray-400 uppercase">Citas Pendientes</p>
                     <button
                       type="button"
                       onClick={() => setIdsSeleccionados(idsSeleccionados.length === citasParaMigrar.length ? [] : citasParaMigrar.map((c) => c.id))}
-                      className="text-[10px] font-bold text-[#D32F2F] underline"
+                      className="text-xs font-bold text-[#D32F2F] underline"
                     >
                       {idsSeleccionados.length === citasParaMigrar.length ? 'Deseleccionar Todo' : 'Seleccionar Todo'}
                     </button>
@@ -260,7 +260,7 @@ const Dashboard = () => {
                       >
                         <div className="flex justify-between items-center">
                           <span className="font-black text-gray-900">{cita.hora}</span>
-                          <span className="text-[10px] font-bold text-gray-400 uppercase">{cita.servicio}</span>
+                          <span className="text-xs font-bold text-gray-400 uppercase">{cita.servicio}</span>
                         </div>
                         <p className="text-xs font-bold text-gray-600 mt-1 uppercase">{cita.paciente}</p>
                       </div>
@@ -273,7 +273,7 @@ const Dashboard = () => {
             <div className="flex flex-col justify-center gap-6">
               <div className="text-center text-4xl lg:text-6xl text-gray-200">⬇️</div>
               <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                <label className="text-[10px] font-black text-gray-900 uppercase block mb-2">2. Profesional Destino</label>
+                <label className="text-xs font-black text-gray-900 uppercase block mb-2">2. Profesional Destino</label>
                 <select className="w-full p-4 bg-gray-50 rounded-xl font-bold border-none outline-none mb-6" value={destinoId} onChange={(e) => setDestinoId(e.target.value)}>
                   <option value="">Seleccione Profesional...</option>
                   {profesionales.filter((p) => p.id !== origenId).map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
@@ -295,37 +295,38 @@ const Dashboard = () => {
       default:
         return (
           <>
-            <header className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-gray-100 pb-8">
-              <div className="w-full md:w-auto">
-                <h2 className="text-3xl font-black text-gray-900 capitalize tracking-tighter leading-none mb-2">
+            <header className="mb-6 sm:mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 border-b border-gray-100 pb-6 sm:pb-8">
+              <div className="w-full sm:w-auto min-w-0">
+                <h2 className="text-2xl sm:text-3xl font-black text-gray-900 capitalize tracking-tight leading-none mb-2">
                   {format(fechaSeleccionada, "EEEE, d 'de' MMMM", { locale: es })}
                 </h2>
                 {esAdmin ? (
                   <select
                     value={filtroProfesional}
                     onChange={(e) => setFiltroProfesional(e.target.value)}
-                    className="w-full md:w-auto bg-red-50 text-[#D32F2F] font-black text-[10px] px-4 py-2 rounded-lg outline-none cursor-pointer uppercase tracking-widest border-none"
+                    className="w-full sm:w-auto bg-red-50 text-[#D32F2F] font-bold text-xs sm:text-sm px-4 py-2 rounded-xl outline-none cursor-pointer border border-red-100 focus:ring-2 focus:ring-[#D32F2F]/20 transition-all"
                   >
-                    <option value="todos">🌍 Ver Todos los Especialistas</option>
+                    <option value="todos">Ver todos los especialistas</option>
                     {profesionales.map((pro) => <option key={pro.id} value={pro.id}>{pro.grado} {pro.nombre}</option>)}
                   </select>
                 ) : (
-                  <div className="bg-gray-100 text-gray-600 font-black text-[9px] px-3 py-1 rounded-lg uppercase tracking-widest inline-block italic border-none">
+                  <div className="bg-gray-100 text-gray-600 font-semibold text-xs sm:text-sm px-3 py-1.5 rounded-lg inline-block">
                     Mi Agenda: {profesionales.find((p) => p.id === currentProId)?.nombre || 'Cargando...'}
                   </div>
                 )}
               </div>
-              <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+              {/* Controles de fecha y nueva cita — apilados en móvil, en fila en sm+ */}
+              <div className="flex flex-col xs:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                 <input
                   type="date"
                   value={format(fechaSeleccionada, 'yyyy-MM-dd')}
                   onChange={handleFechaChange}
-                  className="bg-white border border-gray-200 text-gray-700 px-6 py-4 rounded-xl font-bold shadow-sm outline-none focus:border-[#D32F2F] transition-colors w-full md:w-auto"
+                  className="bg-white border border-gray-200 text-gray-700 px-4 sm:px-6 py-3 sm:py-4 rounded-xl font-semibold text-sm shadow-sm outline-none focus:border-[#D32F2F] focus:ring-2 focus:ring-[#D32F2F]/10 transition-all w-full xs:w-auto"
                 />
                 <button
                   type="button"
                   onClick={() => setShowModal(true)}
-                  className="bg-[#D32F2F] text-white px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-[#9A0007] shadow-lg transition-all active:scale-95 w-full md:w-auto"
+                  className="bg-[#D32F2F] text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-bold text-sm sm:text-base uppercase tracking-wide hover:bg-[#9A0007] shadow-md hover:shadow-clinic transition-all active:scale-95 w-full xs:w-auto"
                 >
                   + Nueva Cita
                 </button>
@@ -334,63 +335,69 @@ const Dashboard = () => {
 
             {puedeGestionarServicios && <KpiCards citasHoy={citas} />}
 
-            <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left min-w-[800px] md:min-w-0">
-                  <thead className="bg-gray-50/50 border-b border-gray-100 text-gray-400">
+            <div className="bg-white rounded-3xl sm:rounded-[2.5rem] shadow-card-md border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto scrollbar-thin">
+                <table className="w-full text-left min-w-[580px]">
+                  <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
-                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest">Hora / Especialista</th>
-                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest">Paciente</th>
-                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Servicio</th>
-                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Estado</th>
-                      <th className="px-8 py-5 text-[9px] font-black uppercase tracking-widest text-center">Acciones</th>
+                      <th className="px-4 sm:px-8 py-4 sm:py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Hora / Profesional</th>
+                      <th className="px-4 sm:px-8 py-4 sm:py-5 text-xs font-bold text-gray-500 uppercase tracking-wider">Paciente</th>
+                      <th className="px-4 sm:px-8 py-4 sm:py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-center hidden sm:table-cell">Servicio</th>
+                      <th className="px-4 sm:px-8 py-4 sm:py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Estado</th>
+                      <th className="px-4 sm:px-8 py-4 sm:py-5 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-50">
                     {loading ? (
-                      <tr><td colSpan={5} className="text-center py-20 text-[10px] font-black text-gray-400 animate-pulse">CARGANDO AGENDA...</td></tr>
+                      <tr>
+                        <td colSpan={5} className="text-center py-16 sm:py-20 text-sm text-gray-400 animate-pulse">
+                          Cargando agenda...
+                        </td>
+                      </tr>
                     ) : citas.length > 0 ? (
                       citas.map((cita) => (
-                        <tr key={cita.id} className="hover:bg-gray-50/50 transition-all">
-                          <td className="px-8 py-6">
-                            <p className="font-black text-[#D32F2F] text-xl leading-none">{cita.hora}</p>
-                            <p className="text-[9px] font-bold text-gray-400 uppercase mt-1 italic">{cita.profesionalNombre || 'Sin asignar'}</p>
+                        <tr key={cita.id} className="hover:bg-red-50/30 transition-colors">
+                          <td className="px-4 sm:px-8 py-4 sm:py-5">
+                            <p className="font-black text-[#D32F2F] text-lg sm:text-xl leading-none">{cita.hora}</p>
+                            <p className="text-xs text-gray-400 font-medium mt-1">{cita.profesionalNombre || 'Sin asignar'}</p>
                           </td>
-                          <td className="px-8 py-6">
-                            <p className="text-gray-900 font-black uppercase text-xs">{cita.paciente}</p>
-                            <p className="text-[9px] font-bold text-gray-400 mt-0.5">ID: {cita.pacienteId}</p>
+                          <td className="px-4 sm:px-8 py-4 sm:py-5">
+                            <p className="text-gray-900 font-bold text-sm uppercase leading-tight">{cita.paciente}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">ID: {cita.pacienteId}</p>
+                            {/* Servicio visible en móvil (columna oculta) */}
+                            <p className="text-xs text-gray-500 mt-0.5 sm:hidden">{cita.servicio}</p>
                             {generarLinkWhatsAppAgenda(cita) && (
                               <a
                                 href={generarLinkWhatsAppAgenda(cita)!}
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1 mt-2 text-[9px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-lg hover:bg-green-100 transition-colors"
+                                className="inline-flex items-center gap-1 mt-1.5 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg hover:bg-green-100 transition-colors"
                               >
                                 💬 WhatsApp
                               </a>
                             )}
                           </td>
-                          <td className="px-8 py-6 text-center">
-                            <span className="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase border bg-gray-50 text-gray-600 border-gray-200">
+                          <td className="px-4 sm:px-8 py-4 sm:py-5 text-center hidden sm:table-cell">
+                            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-600">
                               {cita.servicio}
                             </span>
                           </td>
-                          <td className="px-8 py-6 text-center">
+                          <td className="px-4 sm:px-8 py-4 sm:py-5 text-center">
                             <EstadoCitaBadge
                               citaId={cita.id}
                               estado={cita.estado}
                               puedeEditar={esAdmin}
                             />
                           </td>
-                          <td className="px-8 py-6">
+                          <td className="px-4 sm:px-8 py-4 sm:py-5">
                             <div className="flex items-center justify-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => setCitaSeleccionada(cita)}
-                                className={`px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-md ${
+                                className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all active:scale-95 ${
                                   ESTADOS_FINALIZADOS.includes(cita.estado) || cita.estado === 'CANCELLED' || cita.estado === 'NO_SHOW'
                                     ? 'bg-white text-[#D32F2F] border-2 border-[#D32F2F] hover:bg-red-50'
-                                    : 'bg-[#D32F2F] text-white hover:bg-red-700'
+                                    : 'bg-[#D32F2F] text-white hover:bg-[#9A0007] shadow-sm'
                                 }`}
                               >
                                 {ESTADOS_FINALIZADOS.includes(cita.estado) || cita.estado === 'CANCELLED' || cita.estado === 'NO_SHOW'
@@ -403,9 +410,10 @@ const Dashboard = () => {
                                 <button
                                   type="button"
                                   onClick={() => eliminarCita(cita.id, cita.paciente)}
-                                  className="p-2.5 text-gray-300 hover:text-[#D32F2F] transition-all"
+                                  aria-label="Eliminar cita"
+                                  className="p-2 text-gray-300 hover:text-[#D32F2F] hover:bg-red-50 rounded-lg transition-all"
                                 >
-                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                   </svg>
                                 </button>
@@ -415,7 +423,11 @@ const Dashboard = () => {
                         </tr>
                       ))
                     ) : (
-                      <tr><td colSpan={5} className="text-center py-20 text-[10px] font-black text-gray-400 uppercase">No hay citas para esta fecha</td></tr>
+                      <tr>
+                        <td colSpan={5} className="text-center py-16 sm:py-20 text-sm text-gray-400">
+                          No hay citas para esta fecha
+                        </td>
+                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -427,7 +439,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex-1 p-4 md:p-8 animate-in fade-in duration-700 bg-[#F8F9FA] min-h-screen pb-20">
+    <div className="flex-1 p-3 sm:p-4 md:p-8 animate-in fade-in duration-700 bg-[#F9FAFB] min-h-screen pb-20">
 
       {ConfirmDialog}
       {showModal && <FormularioCita onClose={() => setShowModal(false)} fechaSeleccionada={fechaSeleccionada} />}
@@ -436,28 +448,32 @@ const Dashboard = () => {
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8 gap-6">
         <div className="w-full lg:w-auto">
           <div className="flex items-center gap-2 mb-4">
-            <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-tighter ${esAdmin ? 'bg-black text-white' : 'bg-[#D32F2F] text-white'}`}>
+            <span className={`px-2 py-0.5 rounded text-xs font-black uppercase tracking-tighter ${esAdmin ? 'bg-black text-white' : 'bg-[#D32F2F] text-white'}`}>
               {userRole}
             </span>
-            <span className="text-[10px] text-gray-400 font-bold">{userEmail}</span>
+            <span className="text-xs text-gray-400 font-bold">{userEmail}</span>
           </div>
 
           {esAdmin && (
-            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar gap-2 w-full">
+            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar gap-1 sm:gap-2 w-full">
               {([
-                { key: 'agenda', label: '📅 Agenda' },
-                { key: 'staff', label: '👥 Staff' },
+                { key: 'agenda',    label: '📅 Agenda' },
+                { key: 'staff',     label: '👥 Staff' },
                 { key: 'servicios', label: '🛍️ Servicios' },
-                { key: 'caja', label: '💰 Caja' },
-                { key: 'reportes', label: '📊 Reportes' },
-                { key: 'pacientes', label: '📇 Expedientes Clínicos' },
-                { key: 'migracion', label: '🔄 Gestión Agendas' },
+                { key: 'caja',      label: '💰 Caja' },
+                { key: 'reportes',  label: '📊 Reportes' },
+                { key: 'pacientes', label: '📇 Expedientes' },
+                { key: 'migracion', label: '🔄 Agendas' },
               ] as { key: Vista; label: string }[]).map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setVistaActual(key)}
-                  className={`whitespace-nowrap px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${vistaActual === key ? 'bg-[#D32F2F] text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+                  className={`whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                    vistaActual === key
+                      ? 'bg-[#D32F2F] text-white shadow-md'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  }`}
                 >
                   {label}
                 </button>
@@ -465,11 +481,15 @@ const Dashboard = () => {
               <button
                 type="button"
                 onClick={() => setVistaActual('solicitudes')}
-                className={`relative whitespace-nowrap px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${vistaActual === 'solicitudes' ? 'bg-[#D32F2F] text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+                className={`relative whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                  vistaActual === 'solicitudes'
+                    ? 'bg-[#D32F2F] text-white shadow-md'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                }`}
               >
-                📩 Solicitudes Web
+                📩 Solicitudes
                 {conteoSolicitudes > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[9px] border-2 border-white shadow-sm animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs px-1 border-2 border-white shadow-sm animate-pulse">
                     {conteoSolicitudes}
                   </span>
                 )}
@@ -477,18 +497,22 @@ const Dashboard = () => {
             </div>
           )}
 
-          {/* Tab mínimo para especialistas con permiso de gestionar servicios (ej: diana@piesclinic.com) */}
+          {/* Tabs para especialistas con acceso a servicios (ej: diana@piesclinic.com) */}
           {!esAdmin && puedeGestionarServicios && (
-            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 gap-2">
+            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 gap-1 sm:gap-2">
               {([
-                { key: 'agenda', label: '📅 Agenda' },
+                { key: 'agenda',    label: '📅 Agenda' },
                 { key: 'servicios', label: '🛍️ Servicios' },
               ] as { key: Vista; label: string }[]).map(({ key, label }) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setVistaActual(key)}
-                  className={`whitespace-nowrap px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${vistaActual === key ? 'bg-[#D32F2F] text-white shadow-lg' : 'text-gray-400 hover:bg-gray-50'}`}
+                  className={`whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                    vistaActual === key
+                      ? 'bg-[#D32F2F] text-white shadow-md'
+                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                  }`}
                 >
                   {label}
                 </button>
@@ -498,38 +522,41 @@ const Dashboard = () => {
         </div>
 
         {vistaActual === 'agenda' && (
-          <div className="relative w-full lg:w-96 group mt-4 lg:mt-0">
-            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400">🔍</div>
+          <div className="relative w-full sm:w-80 lg:w-96 mt-3 sm:mt-0">
+            <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 text-base">
+              🔍
+            </div>
             <input
               type="text"
+              inputMode="numeric"
               maxLength={9}
-              placeholder="BUSCAR POR CÉDULA..."
-              className="w-full bg-white border-2 border-transparent focus:border-[#D32F2F] pl-11 pr-4 py-4 rounded-2xl shadow-sm outline-none transition-all font-bold text-xs"
+              placeholder="Buscar por cédula..."
+              className="w-full bg-white border-2 border-gray-100 focus:border-[#D32F2F] pl-11 pr-4 py-3 sm:py-4 rounded-2xl shadow-sm outline-none transition-all font-medium text-sm text-gray-700 placeholder:text-gray-400"
               value={searchTerm}
               onChange={buscarPacienteGlobal}
             />
             {searchTerm.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[100] overflow-hidden">
                 {isSearching ? (
-                  <div className="p-4 text-center text-[10px] text-gray-400 animate-pulse font-black uppercase">Consultando...</div>
+                  <div className="p-4 text-center text-sm text-gray-400 animate-pulse">Consultando...</div>
                 ) : resultadosBusqueda.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto">
+                  <div className="max-h-64 overflow-y-auto scrollbar-thin">
                     {resultadosBusqueda.map((res) => (
                       <div
                         key={res.id}
                         onClick={() => { setCitaSeleccionada(res); setSearchTerm(''); }}
-                        className="p-4 border-b border-gray-50 hover:bg-red-50 cursor-pointer flex justify-between items-center"
+                        className="px-4 py-3 border-b border-gray-50 hover:bg-red-50/50 cursor-pointer flex justify-between items-center transition-colors"
                       >
                         <div>
-                          <p className="font-black text-gray-900 uppercase text-[10px]">{res.paciente}</p>
-                          <p className="text-[9px] text-gray-400 font-bold">{res.fecha} • {res.servicio}</p>
+                          <p className="font-bold text-gray-900 uppercase text-sm">{res.paciente}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">{res.fecha} · {res.servicio}</p>
                         </div>
-                        <span className="text-[9px] font-black text-[#D32F2F]">EXPEDIENTE →</span>
+                        <span className="text-xs font-bold text-[#D32F2F] flex-shrink-0 ml-2">Ver →</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="p-4 text-center text-[10px] text-gray-400 font-black uppercase">Sin resultados</div>
+                  <div className="p-4 text-center text-sm text-gray-400">Sin resultados</div>
                 )}
               </div>
             )}
