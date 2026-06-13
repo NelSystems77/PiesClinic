@@ -31,7 +31,7 @@
 | UI | React | 19.2.0 | Hooks only, no class components |
 | Bundler | Vite | 7.2.4 | `type: "module"` in package.json |
 | TypeScript | 5.x | Installed 2026-06-10 | `strict: false`, all files migrated to `.ts`/`.tsx` |
-| Styles | Tailwind CSS | 4.1.18 | Custom tokens: `clinic-red`, `clinic-redDark`, `clinic-bg` |
+| Styles | Tailwind CSS | 4.1.18 | Tokens: `clinic-red/redDark/redMid/redLight/redSoft/bg/bgDark`; breakpoint `xs:375px`; sombras `card/card-md/clinic` |
 | Auth + DB + Storage | Firebase | 12.7.0 | Auth, Firestore, Storage |
 | Functions | Firebase Cloud Functions | 2.x | Node 24, currently empty boilerplate |
 | Dates | date-fns | 4.1.0 | |
@@ -253,6 +253,13 @@ src/
 - Alertas médicas en `FormularioCita` — al ingresar 9 dígitos de cédula, hace 3 consultas en paralelo (`Promise.all`): última cita (auto-rellena nombre/teléfono), `expedientes/{cedula}` (anamnesis) y subcolección `sesiones` (cuenta). Muestra chips: "Paciente nuevo" (azul) o "N sesiones previas" (gris), condiciones críticas en rojo (Diabético, Hemofilia, VIH/SIDA), condiciones secundarias en ámbar (Hipertensión, Asma, Enf. Vascular, Alergias). Los chips se limpian si la cédula baja de 9 dígitos. Completado 2026-06-13.
 - WhatsApp post-confirmación en `GestionSolicitudes` — al confirmar una solicitud web el modal transiciona a pantalla de éxito con resumen (fecha larga en español, hora, servicio, profesional) y botón verde para enviar mensaje de confirmación pre-redactado al paciente. Botón "Cerrar sin enviar" para omitirlo. Completado 2026-06-13.
 - Fix `GestionSolicitudes`: ahora escribe `pacientes/{cedula}` con `merge: true` al confirmar solicitud web — antes solo `FormularioCita` lo hacía; pacientes que llegaban por la web nunca aparecían en el directorio. Completado 2026-06-13.
+- **UX/UI mobile-first + accesibilidad** — Completado 2026-06-13:
+  - `index.css`: fuente Inter con antialiasing, `focus-visible` global (anillo rojo clínico solo con teclado), selección de texto en rojo de marca, utilidades `no-scrollbar` y `scrollbar-thin`.
+  - `tailwind.config.js`: tokens extendidos (`clinic.redLight/redSoft/redMid`), sombras semánticas (`card`, `card-md`, `clinic`), breakpoint `xs:375px`, `fontFamily.sans: Inter`.
+  - `AppLayout`: navbar `sticky top-0 z-40` (visible al scroll), botón "Acceso" en rojo sólido (CTA visible), contraste nav links corregido (`text-gray-600` → ratio 7:1 en blanco).
+  - `Dashboard`: todos los `text-[9px]`/`text-[10px]` → `text-xs` (WCAG AA mínimo 12px), tabla responsive (columna Servicio oculta en móvil e inlineada en celda Paciente), tabs más legibles (`text-sm` en sm+), buscador con `inputMode="numeric"` y placeholder legible.
+  - `FormularioCita`: modal como **bottom sheet** en móvil (slide desde abajo), en desktop como modal centrado. Botón "Confirmar" cambiado de `bg-gray-900` (negro) a `bg-[#D32F2F]` (consistencia de marca). Botón "Cancelar" con borde visible. `inputMode="numeric"` en cédula, `inputMode="tel"` en teléfono.
+  - `SlotPicker`: grid responsivo 3→4→5 columnas por breakpoint, tap targets `min-h-[44px]` (WCAG/Apple HIG), hover en rojo suave, indicador del slot elegido en el header del componente.
 
 ---
 
@@ -586,6 +593,84 @@ const [citasSnap, expSnap, sesSnap] = await Promise.all([
 
 Si `expSnap.exists()` es `false` (paciente nuevo sin expediente), `sesSnap.size` será 0 — mostrar chip "Paciente nuevo". No lanzar error si el expediente no existe; simplemente mostrar el estado de paciente nuevo.
 
+### Accesibilidad — tamaño mínimo de texto y contraste
+
+**Regla:** Nunca usar `text-[9px]` ni `text-[10px]` en ningún componente. El mínimo para cumplir WCAG AA es **12px** (`text-xs`). Usar `text-xs` como piso, `text-sm` para texto de cuerpo normal.
+
+**Contraste mínimo WCAG AA:**
+- Texto normal (< 18px): ratio mínimo 4.5:1
+- `text-gray-400` (`#9CA3AF`) sobre blanco = ratio 2.85:1 → **FALLA** — no usar para texto funcional
+- `text-gray-500` (`#6B7280`) sobre blanco = ratio 4.54:1 → pasa justo (solo para texto decorativo o labels secundarios)
+- `text-gray-600` (`#4B5563`) sobre blanco = ratio 7.07:1 → **pasa** — preferir para texto de interfaz
+
+```tsx
+// BAD — ilegible y falla WCAG
+<label className="text-[9px] text-gray-400">Cédula</label>
+
+// GOOD
+<label className="text-xs font-semibold text-gray-600">Cédula</label>
+```
+
+### Accesibilidad — tap targets en móvil
+
+Los elementos interactivos (botones, slots de horario, items de listas) deben tener al menos **44×44px** de área táctil (WCAG 2.5.5, Apple HIG, Material Design). Usar `min-h-[44px]` o `min-w-[44px]` donde el contenido no garantice ese tamaño.
+
+```tsx
+// BAD — tap target de 28px de alto, imposible tocar en móvil
+<button className="py-1 px-2 text-xs">08:00</button>
+
+// GOOD — 44px garantizados
+<button className="min-h-[44px] px-3 text-xs">08:00</button>
+```
+
+### Mobile-first — modales como bottom sheet en móvil
+
+En pantallas pequeñas, los modales se perciben mejor como **hojas desde abajo** (bottom sheet) que como overlays centrados. Patrón implementado en `FormularioCita`:
+
+```tsx
+// Overlay: items-end en móvil, items-center en sm+
+<div className="fixed inset-0 bg-gray-900/80 flex items-end sm:items-center justify-center z-[200]">
+  {/* Modal: esquinas arriba redondeadas en móvil, completamente redondeado en sm+ */}
+  <div className="bg-white w-full sm:max-w-md rounded-t-[2rem] sm:rounded-[2.5rem]
+                  animate-in slide-in-from-bottom-4 sm:zoom-in duration-300
+                  max-h-[96dvh] sm:max-h-[90vh] flex flex-col">
+```
+
+Usar `96dvh` (dynamic viewport height) en móvil para evitar que el teclado virtual tape el modal. Usar `max-h` + `overflow-y-auto` en el `<form>` para que el contenido sea scrolleable sin colapsar el footer de botones.
+
+### Mobile-first — `inputMode` en campos numéricos/telefónicos
+
+Siempre agregar `inputMode` en inputs numéricos para mostrar el teclado correcto en móvil:
+
+```tsx
+// Cédula — solo dígitos
+<input type="text" inputMode="numeric" maxLength={9} />
+
+// Teléfono — teclado tel con "+", "-", espacios
+<input type="tel" inputMode="tel" />
+
+// Montos — números con decimales
+<input type="number" inputMode="decimal" />
+```
+
+Sin `inputMode`, el teclado alfabético aparece por defecto en iOS/Android, obligando al usuario a cambiar de teclado manualmente.
+
+### Mobile-first — tabla responsive: columnas opcionales
+
+En tablas con muchas columnas, ocultar columnas secundarias en móvil e incluir esa información en celdas existentes:
+
+```tsx
+// Columna secundaria — oculta en móvil
+<th className="hidden sm:table-cell">Servicio</th>
+<td className="hidden sm:table-cell">{cita.servicio}</td>
+
+// Misma info inline en columna principal — visible solo en móvil
+<td>
+  <p className="font-bold">{cita.paciente}</p>
+  <p className="text-xs text-gray-500 sm:hidden">{cita.servicio}</p> {/* Inline en móvil */}
+</td>
+```
+
 ---
 
 ## Podology-Specific Adaptations from Blueprint
@@ -631,4 +716,4 @@ When migrating (Phase 1):
 
 ---
 
-*Last updated: 2026-06-12 — Phase 4 Landing Page completada (hero, servicios dinámicos, about, PYME, ubicación, FAQ, CTA, WhatsApp float + back-to-top)*
+*Last updated: 2026-06-13 — UX/UI mobile-first + accesibilidad: navbar sticky, bottom sheet modal, SlotPicker responsivo, text mínimo text-xs (WCAG), contraste corregido, tokens de diseño extendidos*
