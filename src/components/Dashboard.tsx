@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import toast from 'react-hot-toast';
@@ -47,6 +47,15 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [resultadosBusqueda, setResultadosBusqueda] = useState<Cita[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  const tabsScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = tabsScrollRef.current;
+    if (!container) return;
+    const activeBtn = container.querySelector<HTMLButtonElement>('[data-active="true"]');
+    activeBtn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+  }, [vistaActual]);
 
   useEffect(() => {
     const fetchPros = async () => {
@@ -455,45 +464,51 @@ const Dashboard = () => {
           </div>
 
           {esAdmin && (
-            <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar gap-1 sm:gap-2 w-full">
-              {([
-                { key: 'agenda',    label: '📅 Agenda' },
-                { key: 'staff',     label: '👥 Staff' },
-                { key: 'servicios', label: '🛍️ Servicios' },
-                { key: 'caja',      label: '💰 Caja' },
-                { key: 'reportes',  label: '📊 Reportes' },
-                { key: 'pacientes', label: '📇 Expedientes' },
-                { key: 'migracion', label: '🔄 Agendas' },
-              ] as { key: Vista; label: string }[]).map(({ key, label }) => (
+            <div className="relative w-full">
+              <div ref={tabsScrollRef} className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar gap-1 sm:gap-2 w-full">
+                {([
+                  { key: 'agenda',    label: '📅 Agenda' },
+                  { key: 'staff',     label: '👥 Staff' },
+                  { key: 'servicios', label: '🛍️ Servicios' },
+                  { key: 'caja',      label: '💰 Caja' },
+                  { key: 'reportes',  label: '📊 Reportes' },
+                  { key: 'pacientes', label: '📇 Expedientes' },
+                  { key: 'migracion', label: '🔄 Agendas' },
+                ] as { key: Vista; label: string }[]).map(({ key, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    data-active={vistaActual === key}
+                    onClick={() => setVistaActual(key)}
+                    className={`whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                      vistaActual === key
+                        ? 'bg-[#D32F2F] text-white shadow-md'
+                        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
                 <button
-                  key={key}
                   type="button"
-                  onClick={() => setVistaActual(key)}
-                  className={`whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
-                    vistaActual === key
+                  data-active={vistaActual === 'solicitudes'}
+                  onClick={() => setVistaActual('solicitudes')}
+                  className={`relative whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                    vistaActual === 'solicitudes'
                       ? 'bg-[#D32F2F] text-white shadow-md'
                       : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                   }`}
                 >
-                  {label}
+                  📩 Solicitudes
+                  {conteoSolicitudes > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs px-1 border-2 border-white shadow-sm animate-pulse">
+                      {conteoSolicitudes}
+                    </span>
+                  )}
                 </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setVistaActual('solicitudes')}
-                className={`relative whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
-                  vistaActual === 'solicitudes'
-                    ? 'bg-[#D32F2F] text-white shadow-md'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                }`}
-              >
-                📩 Solicitudes
-                {conteoSolicitudes > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs px-1 border-2 border-white shadow-sm animate-pulse">
-                    {conteoSolicitudes}
-                  </span>
-                )}
-              </button>
+              </div>
+              {/* Fade gradient indica que hay más tabs a la derecha */}
+              <div className="pointer-events-none absolute right-0 top-0 h-full w-10 rounded-r-2xl bg-gradient-to-l from-white to-transparent" />
             </div>
           )}
 
