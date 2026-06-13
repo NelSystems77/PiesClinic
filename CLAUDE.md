@@ -431,18 +431,45 @@ AOS scans the DOM once at init. If elements mount after a Firestore response, AO
 </motion.div>
 ```
 
-### Datos clínicos — NUNCA leer de `cita.*`
+### Datos clínicos y financieros — NUNCA leer de `cita.*`
 
 Los campos `hallazgos`, `tratamiento`, `diagnosticosSeleccionados`, `fotos`, `costo`, `metodoPago`, `firmaUrl` ya **no existen** en documentos de la colección `citas`. Siempre cargar desde `expedientes/{pacienteId}/sesiones/{citaId}`.
 
+Esto aplica **tanto a datos clínicos como a datos financieros** (`costo`, `metodoPago`). Componentes afectados: `FichaClinica`, `CierreCaja`, `Reportes`, `DirectorioPacientes`, y cualquier futuro módulo de pagos.
+
 ```ts
 // BAD — siempre undefined en citas recientes
+const costo = cita.costo;
 const hallazgos = cita.hallazgos;
 
-// GOOD
+// GOOD — leer desde la sesión
 const snap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id));
-const hallazgos = snap.exists() ? snap.data().hallazgos : '';
+if (snap.exists()) {
+  const sesion = snap.data();
+  // sesion.costo, sesion.metodoPago, sesion.hallazgos, etc.
+}
 ```
+
+Para cierres de caja o reportes que procesan **múltiples citas**, usar `Promise.all` para cargar sesiones en paralelo y mantener un fallback para citas antiguas:
+
+```ts
+await Promise.all(citasSnap.docs.map(async (d) => {
+  const cita = d.data();
+  let monto = 0;
+  let metodo = 'Efectivo';
+  if (cita.pacienteId) {
+    const sesSnap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', d.id));
+    if (sesSnap.exists()) {
+      monto = Number(sesSnap.data().costo ?? 0);
+      metodo = sesSnap.data().metodoPago || 'Efectivo';
+    }
+  }
+  // fallback para citas previas a la migración (Phase 2, 2026-06-11)
+  if (monto === 0) monto = Number(cita.totalPagado ?? cita.costo ?? 0);
+}));
+```
+
+**Bug conocido corregido (2026-06-13):** `CierreCaja` mostraba ₡0 de ingreso bruto porque leía `cita.costo` (siempre `undefined`). Corregido en `src/components/CierreCaja.tsx`.
 
 ### Componentes con estado async + función de reset — usar `useRef`
 
