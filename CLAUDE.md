@@ -266,8 +266,9 @@ src/
   - Auto-scroll: `useRef` en el scroll container + `useEffect` que llama `scrollIntoView({ inline: 'center', behavior: 'smooth' })` sobre el botón `data-active="true"` cada vez que cambia `vistaActual`.
   - Solicitudes unificado al array de tabs (eliminado botón separado); badge de conteo renderizado condicionalmente dentro del `.map()` con `key === 'solicitudes'`.
 - **Tabs Dashboard — reorden** — Completado 2026-06-13:
-  - Nuevo orden: Agenda → Solicitudes → Servicios → Caja → Reportes → Expedientes → Agendas → Staff.
+  - Nuevo orden: Agenda → Solicitudes → Servicios → Caja → Reportes → Expedientes → Gestión de Agendas → Staff.
   - Solicitudes subió a posición 2 (alta frecuencia de uso); Staff bajó al final (uso ocasional — gestión de personal).
+  - Tab `migracion` renombrado de "Agendas" a "Gestión de Agendas" para mayor claridad (2026-06-13).
 
 ---
 
