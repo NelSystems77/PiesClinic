@@ -473,7 +473,7 @@ const Dashboard = () => {
                   { key: 'caja',        label: '💰 Caja' },
                   { key: 'reportes',    label: '📊 Reportes' },
                   { key: 'pacientes',   label: '📇 Expedientes' },
-                  { key: 'migracion',   label: '🔄 Agendas' },
+                  { key: 'migracion',   label: '🔄 Gestión de Agendas' },
                   { key: 'staff',       label: '👥 Staff' },
                 ] as { key: Vista; label: string }[]).map(({ key, label }) => (
                   <button
