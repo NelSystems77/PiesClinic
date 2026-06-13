@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useOutletContext } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -52,6 +52,89 @@ const FAQ_ITEMS = [
     a: 'Depende del servicio: una consulta general toma entre 30 y 60 minutos. Al agendar tu cita te indicamos la duración estimada.',
   },
 ];
+
+const BeforeAfterSlider = () => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(50);
+  const isDragging = useRef(false);
+
+  useEffect(() => {
+    const calc = (clientX: number) => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return 50;
+      return Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100));
+    };
+    const onMove = (e: MouseEvent) => {
+      if (isDragging.current) setPos(calc(e.clientX));
+    };
+    const onUp = () => { isDragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const calcPos = (clientX: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return 50;
+    return Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100));
+  };
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative select-none overflow-hidden rounded-2xl shadow-2xl cursor-ew-resize h-64 sm:h-96 md:h-[480px]"
+      onMouseDown={(e) => { e.preventDefault(); isDragging.current = true; setPos(calcPos(e.clientX)); }}
+      onTouchStart={(e) => { isDragging.current = true; setPos(calcPos(e.touches[0].clientX)); }}
+      onTouchMove={(e) => { if (isDragging.current) setPos(calcPos(e.touches[0].clientX)); }}
+      onTouchEnd={() => { isDragging.current = false; }}
+    >
+      {/* Imagen ANTES */}
+      <img
+        src="/pictures/antes.jpg"
+        alt="Antes del tratamiento"
+        className="absolute inset-0 w-full h-full object-cover"
+        draggable={false}
+      />
+
+      {/* Imagen DESPUÉS clipeada */}
+      <img
+        src="/pictures/despues.jpg"
+        alt="Después del tratamiento"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
+        draggable={false}
+      />
+
+      {/* Etiquetas */}
+      <span className="absolute top-4 left-4 bg-black/55 text-white text-xs font-bold px-3 py-1.5 rounded-full pointer-events-none tracking-wider">
+        ANTES
+      </span>
+      <span className="absolute top-4 right-4 bg-[#D32F2F]/90 text-white text-xs font-bold px-3 py-1.5 rounded-full pointer-events-none tracking-wider">
+        DESPUÉS
+      </span>
+
+      {/* Línea divisora */}
+      <div
+        className="absolute top-0 bottom-0 w-0.5 bg-white"
+        style={{ left: `${pos}%`, transform: 'translateX(-50%)', boxShadow: '0 0 10px rgba(0,0,0,0.4)' }}
+      >
+        {/* Handle */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full border-2 border-[#D32F2F] flex items-center justify-center gap-0.5"
+          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.35)' }}>
+          <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#D32F2F]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+          <svg viewBox="0 0 24 24" className="w-3 h-3 text-[#D32F2F]" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const WHATSAPP = import.meta.env.VITE_WHATSAPP_NUMBER || '50687409343';
 const PHONE = '8799-4300';
@@ -275,6 +358,34 @@ const LandingPage = () => {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── ANTES Y DESPUÉS ──────────────────────────────────────────────────── */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <span className="text-[#D32F2F] font-bold tracking-widest text-xs uppercase">
+              Resultados reales
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-2">
+              Cambios que se notan
+            </h2>
+            <p className="text-gray-500 mt-3 max-w-xl mx-auto">
+              Desliza la barra para comparar el antes y el después de nuestros tratamientos.
+              Resultados visibles desde la primera sesión.
+            </p>
+          </div>
+          <BeforeAfterSlider />
+          <p className="text-center text-gray-400 text-sm mt-5 flex items-center justify-center gap-2">
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            Desliza para comparar
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </p>
         </div>
       </section>
 
