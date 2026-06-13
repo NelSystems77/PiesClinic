@@ -260,6 +260,10 @@ src/
   - `Dashboard`: todos los `text-[9px]`/`text-[10px]` → `text-xs` (WCAG AA mínimo 12px), tabla responsive (columna Servicio oculta en móvil e inlineada en celda Paciente), tabs más legibles (`text-sm` en sm+), buscador con `inputMode="numeric"` y placeholder legible.
   - `FormularioCita`: modal como **bottom sheet** en móvil (slide desde abajo), en desktop como modal centrado. Botón "Confirmar" cambiado de `bg-gray-900` (negro) a `bg-[#D32F2F]` (consistencia de marca). Botón "Cancelar" con borde visible. `inputMode="numeric"` en cédula, `inputMode="tel"` en teléfono.
   - `SlotPicker`: grid responsivo 3→4→5 columnas por breakpoint, tap targets `min-h-[44px]` (WCAG/Apple HIG), hover en rojo suave, indicador del slot elegido en el header del componente.
+- **Tabs Dashboard — fade gradient + auto-scroll** — Completado 2026-06-13:
+  - El contenedor de tabs (`Dashboard.tsx`) tenía `overflow-x-auto no-scrollbar` pero sin indicación visual de que se podía deslizar — tabs como "Expedientes" y "Agendas" quedaban ocultos sin pista.
+  - Solución: wrapper `relative` + capa `pointer-events-none` con `bg-gradient-to-l from-white` en el borde derecho. Siempre visible, indica desplazamiento sin ocupar espacio.
+  - Auto-scroll: `useRef` en el scroll container + `useEffect` que llama `scrollIntoView({ inline: 'center', behavior: 'smooth' })` sobre el botón `data-active="true"` cada vez que cambia `vistaActual`.
 
 ---
 
@@ -671,6 +675,45 @@ En tablas con muchas columnas, ocultar columnas secundarias en móvil e incluir 
 </td>
 ```
 
+### Mobile-first — tabs scrollables con fade gradient
+
+Cuando una barra de tabs tiene `overflow-x-auto` pero `no-scrollbar`, el usuario no sabe que puede deslizar. Solución: envolver el scroll container en un `div relative` y agregar una capa de fade como indicador:
+
+```tsx
+<div className="relative w-full">
+  <div ref={tabsScrollRef} className="flex overflow-x-auto no-scrollbar gap-1 ...">
+    {tabs.map(({ key, label }) => (
+      <button
+        key={key}
+        type="button"
+        data-active={vistaActual === key}   // ← necesario para auto-scroll
+        onClick={() => setVistaActual(key)}
+        ...
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+  {/* Indicador visual de "hay más a la derecha" */}
+  <div className="pointer-events-none absolute right-0 top-0 h-full w-10 rounded-r-2xl bg-gradient-to-l from-white to-transparent" />
+</div>
+```
+
+Auto-scroll del tab activo al cambiar de vista:
+
+```ts
+const tabsScrollRef = useRef<HTMLDivElement>(null);
+
+useEffect(() => {
+  const container = tabsScrollRef.current;
+  if (!container) return;
+  const activeBtn = container.querySelector<HTMLButtonElement>('[data-active="true"]');
+  activeBtn?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+}, [vistaActual]);
+```
+
+Aplica a: `Dashboard.tsx` (barra de tabs de admin con 8 entradas). Si se agregan más tabs en el futuro, este patrón ya está implementado y no requiere cambios.
+
 ---
 
 ## Podology-Specific Adaptations from Blueprint
@@ -716,4 +759,4 @@ When migrating (Phase 1):
 
 ---
 
-*Last updated: 2026-06-13 — UX/UI mobile-first + accesibilidad: navbar sticky, bottom sheet modal, SlotPicker responsivo, text mínimo text-xs (WCAG), contraste corregido, tokens de diseño extendidos*
+*Last updated: 2026-06-13 — Tabs Dashboard: fade gradient + auto-scroll con useRef/scrollIntoView para indicar tabs ocultos en móvil; UX/UI mobile-first + accesibilidad: navbar sticky, bottom sheet modal, SlotPicker responsivo, text mínimo text-xs (WCAG), contraste corregido, tokens de diseño extendidos*
