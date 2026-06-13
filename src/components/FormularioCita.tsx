@@ -5,6 +5,7 @@ import { collection, addDoc, setDoc, doc, query, where, getDocs, limit, orderBy,
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Usuario, Servicio } from '../types';
+import SlotPicker from './SlotPicker';
 
 interface FormularioCitaProps {
   onClose: () => void;
@@ -26,12 +27,14 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
   const [serviciosDisponibles, setServiciosDisponibles] = useState<Servicio[]>([]);
   const [especialistaElegido, setEspecialistaElegido] = useState<Usuario | null>(null);
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
+  const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
+  const [cargandoSlots, setCargandoSlots] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     pacienteId: '',
     paciente: '',
     telefono: '',
-    hora: '09:00',
+    hora: '',
     servicio: '',
     estado: 'Pendiente',
   });
@@ -68,6 +71,32 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
     obtenerProfesionales();
     obtenerServicios();
   }, []);
+
+  useEffect(() => {
+    if (!especialistaElegido) {
+      setHorasOcupadas([]);
+      return;
+    }
+    const fechaStr = format(fechaSeleccionada, 'yyyy-MM-dd');
+    setCargandoSlots(true);
+    setFormData((prev) => ({ ...prev, hora: '' }));
+    const cargarSlots = async () => {
+      try {
+        const q = query(
+          collection(db, 'citas'),
+          where('profesionalId', '==', especialistaElegido.id),
+          where('fecha', '==', fechaStr)
+        );
+        const snap = await getDocs(q);
+        setHorasOcupadas(snap.docs.map((d) => d.data().hora as string));
+      } catch (error) {
+        console.error('Error cargando horarios:', error);
+      } finally {
+        setCargandoSlots(false);
+      }
+    };
+    cargarSlots();
+  }, [especialistaElegido, fechaSeleccionada]);
 
   const buscarPacienteExistente = async (id: string) => {
     const cleanId = id.trim();
@@ -109,6 +138,10 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
     e.preventDefault();
     if (!especialistaElegido) {
       toast.error('Por favor, seleccione un especialista.');
+      return;
+    }
+    if (!formData.hora) {
+      toast.error('Seleccione un horario disponible.');
       return;
     }
     setLoading(true);
@@ -161,7 +194,7 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-4">
+        <form onSubmit={handleSubmit} className="p-8 space-y-4 overflow-y-auto max-h-[75vh]">
           <div className="relative">
             <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Cédula / ID</label>
             <input
@@ -189,6 +222,19 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             />
           </div>
 
+          <div>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Teléfono</label>
+            <input
+              required
+              name="telefono"
+              type="tel"
+              placeholder="0000-0000"
+              className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-bold text-gray-700"
+              value={formData.telefono}
+              onChange={handleChange}
+            />
+          </div>
+
           <div className="p-4 bg-red-50 rounded-2xl border border-red-100">
             <label className="text-[10px] font-black uppercase text-red-600 mb-2 ml-1 block tracking-widest">Asignar Especialista</label>
             <select
@@ -211,30 +257,15 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Teléfono</label>
-              <input
-                required
-                name="telefono"
-                type="tel"
-                placeholder="0000-0000"
-                className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-bold text-gray-700"
-                value={formData.telefono}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Hora</label>
-              <input
-                type="time"
-                name="hora"
-                required
-                className="w-full bg-gray-50 border-2 border-transparent focus:border-red-500 rounded-2xl p-4 outline-none font-black text-gray-700"
-                value={formData.hora}
-                onChange={handleChange}
-              />
-            </div>
+          <div>
+            <label className="text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 block tracking-widest">Horario</label>
+            <SlotPicker
+              horasOcupadas={horasOcupadas}
+              value={formData.hora}
+              onChange={(hora) => setFormData((prev) => ({ ...prev, hora }))}
+              cargando={cargandoSlots}
+              sinEspecialista={!especialistaElegido}
+            />
           </div>
 
           <div>

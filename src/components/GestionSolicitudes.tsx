@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { Solicitud, Usuario, toLocalDateStr } from '../types';
 import { useConfirm } from '../hooks/useConfirm';
+import SlotPicker from './SlotPicker';
 
 interface DatosCita {
   profesionalId: string;
@@ -19,10 +20,12 @@ const GestionSolicitudes = () => {
   const [profesionales, setProfesionales] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<Solicitud | null>(null);
+  const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
+  const [cargandoSlots, setCargandoSlots] = useState(false);
   const [datosCita, setDatosCita] = useState<DatosCita>({
     profesionalId: '',
     fecha: '',
-    hora: '09:00',
+    hora: '',
     duracion: '30',
   });
 
@@ -44,6 +47,30 @@ const GestionSolicitudes = () => {
     fetchPros();
   }, []);
 
+  useEffect(() => {
+    if (!procesando || !datosCita.profesionalId || !datosCita.fecha) {
+      setHorasOcupadas([]);
+      return;
+    }
+    setCargandoSlots(true);
+    const cargar = async () => {
+      try {
+        const q = query(
+          collection(db, 'citas'),
+          where('profesionalId', '==', datosCita.profesionalId),
+          where('fecha', '==', datosCita.fecha)
+        );
+        const snap = await getDocs(q);
+        setHorasOcupadas(snap.docs.map((d) => d.data().hora as string));
+      } catch (error) {
+        console.error('Error cargando horarios:', error);
+      } finally {
+        setCargandoSlots(false);
+      }
+    };
+    cargar();
+  }, [datosCita.profesionalId, datosCita.fecha, procesando]);
+
   const rechazarSolicitud = async (id: string) => {
     if (await confirm('¿Estás seguro de borrar esta solicitud?', { variant: 'danger', confirmLabel: 'Borrar' })) {
       await deleteDoc(doc(db, 'solicitudes', id));
@@ -52,10 +79,11 @@ const GestionSolicitudes = () => {
 
   const abrirModalConfirmar = (solicitud: Solicitud) => {
     setProcesando(solicitud);
+    setHorasOcupadas([]);
     setDatosCita({
       profesionalId: '',
       fecha: solicitud.fechaDeseada || toLocalDateStr(new Date()),
-      hora: '09:00',
+      hora: '',
       duracion: '30',
     });
   };
@@ -63,6 +91,7 @@ const GestionSolicitudes = () => {
   const confirmarCita = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!datosCita.profesionalId) { toast.error('Selecciona un especialista'); return; }
+    if (!datosCita.hora) { toast.error('Selecciona un horario disponible'); return; }
     if (!procesando) return;
 
     try {
@@ -82,6 +111,15 @@ const GestionSolicitudes = () => {
         nota: `Origen: Web. Detalle: ${procesando.mensaje || 'Ninguno'}`,
         createdAt: serverTimestamp(),
       });
+
+      if (procesando.cedula) {
+        await setDoc(doc(db, 'pacientes', procesando.cedula), {
+          nombre: procesando.nombre,
+          cedula: procesando.cedula,
+          telefono: procesando.telefono,
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
 
       await deleteDoc(doc(db, 'solicitudes', procesando.id));
       toast.success('Cita agendada y solicitud procesada.');
@@ -184,64 +222,68 @@ const GestionSolicitudes = () => {
 
       {procesando && (
         <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl animate-in zoom-in duration-300">
-            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-1">Confirmar Cita</h3>
-            <p className="text-xs text-gray-500 mb-6">
-              Asignar espacio para <strong className="text-black uppercase">{procesando.nombre}</strong>
-            </p>
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
+            <div className="p-8">
+              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-1">Confirmar Cita</h3>
+              <p className="text-xs text-gray-500 mb-6">
+                Asignar espacio para <strong className="text-black uppercase">{procesando.nombre}</strong>
+              </p>
 
-            <form onSubmit={confirmarCita} className="space-y-4">
-              <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Fecha Definitiva</label>
-                <input
-                  type="date"
-                  required
-                  className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                  value={datosCita.fecha}
-                  onChange={(e) => setDatosCita({ ...datosCita, fecha: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Hora Exacta</label>
-                <input
-                  type="time"
-                  required
-                  className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                  value={datosCita.hora}
-                  onChange={(e) => setDatosCita({ ...datosCita, hora: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Asignar Especialista</label>
-                <select
-                  required
-                  className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                  value={datosCita.profesionalId}
-                  onChange={(e) => setDatosCita({ ...datosCita, profesionalId: e.target.value })}
-                >
-                  <option value="">Seleccione...</option>
-                  {profesionales.map((p) => (
-                    <option key={p.id} value={p.id}>{p.grado} {p.nombre}</option>
-                  ))}
-                </select>
-              </div>
+              <form onSubmit={confirmarCita} className="space-y-4">
+                <div>
+                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Especialista</label>
+                  <select
+                    required
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                    value={datosCita.profesionalId}
+                    onChange={(e) => setDatosCita({ ...datosCita, profesionalId: e.target.value, hora: '' })}
+                  >
+                    <option value="">Seleccione...</option>
+                    {profesionales.map((p) => (
+                      <option key={p.id} value={p.id}>{p.grado} {p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div className="pt-4 flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setProcesando(null)}
-                  className="flex-1 py-4 rounded-xl font-black text-xs uppercase text-gray-400 hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-4 rounded-xl font-black text-xs uppercase bg-[#D32F2F] text-white hover:bg-black shadow-xl"
-                >
-                  Confirmar
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Fecha Definitiva</label>
+                  <input
+                    type="date"
+                    required
+                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                    value={datosCita.fecha}
+                    onChange={(e) => setDatosCita({ ...datosCita, fecha: e.target.value, hora: '' })}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-2">Horario</label>
+                  <SlotPicker
+                    horasOcupadas={horasOcupadas}
+                    value={datosCita.hora}
+                    onChange={(hora) => setDatosCita((prev) => ({ ...prev, hora }))}
+                    cargando={cargandoSlots}
+                    sinEspecialista={!datosCita.profesionalId || !datosCita.fecha}
+                  />
+                </div>
+
+                <div className="pt-4 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setProcesando(null)}
+                    className="flex-1 py-4 rounded-xl font-black text-xs uppercase text-gray-400 hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-4 rounded-xl font-black text-xs uppercase bg-[#D32F2F] text-white hover:bg-black shadow-xl"
+                  >
+                    Confirmar
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
