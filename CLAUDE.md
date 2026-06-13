@@ -429,6 +429,51 @@ AOS scans the DOM once at init. If elements mount after a Firestore response, AO
 </motion.div>
 ```
 
+### Datos clínicos — NUNCA leer de `cita.*`
+
+Los campos `hallazgos`, `tratamiento`, `diagnosticosSeleccionados`, `fotos`, `costo`, `metodoPago`, `firmaUrl` ya **no existen** en documentos de la colección `citas`. Siempre cargar desde `expedientes/{pacienteId}/sesiones/{citaId}`.
+
+```ts
+// BAD — siempre undefined en citas recientes
+const hallazgos = cita.hallazgos;
+
+// GOOD
+const snap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', cita.id));
+const hallazgos = snap.exists() ? snap.data().hallazgos : '';
+```
+
+### Componentes con estado async + función de reset — usar `useRef`
+
+Si un componente carga datos de Firestore en un `useEffect` y tiene una función que "resetea" el estado, la función de reset NO puede leer de las props originales (que ya no tienen los datos). Guardar los datos cargados en un `useRef` y usarlo como fuente en el reset.
+
+```ts
+const datosRef = useRef<DatosType | null>(null);
+
+// En useEffect:
+datosRef.current = datosDeFirestore;
+setHallazgos(datosDeFirestore.hallazgos);
+
+// En la función reset:
+setHallazgos(datosRef.current?.hallazgos ?? props.hallazgos ?? '');
+```
+
+Aplica a: `FichaClinica`, y cualquier modal con tabs que cargue datos asincrónicamente.
+
+### Tab navigation — no llamar funciones de reset al cambiar de tab
+
+Separar "cambiar tab" de "volver al estado original". Llamar el reset solo cuando hay contexto activo que limpiar.
+
+```tsx
+// BAD — resetea estado aunque solo se esté cambiando de tab
+<button onClick={() => { volverACitaActual(); setTabActual('atencion'); }}>
+
+// GOOD
+<button onClick={() => {
+  if (sesionVisualizada) volverACitaActual();
+  else setTabActual('atencion');
+}}>
+```
+
 ### Forms — always set `type="button"` on non-submit buttons inside `<form>`
 
 ```jsx
