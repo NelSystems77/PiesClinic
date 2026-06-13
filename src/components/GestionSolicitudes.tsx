@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc, addDoc, getDocs, where, setDoc, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Solicitud, Usuario, toLocalDateStr } from '../types';
 import { useConfirm } from '../hooks/useConfirm';
 import SlotPicker from './SlotPicker';
@@ -14,12 +15,22 @@ interface DatosCita {
   duracion: string;
 }
 
+interface CitaConfirmada {
+  nombre: string;
+  telefono: string;
+  servicio: string;
+  fecha: string;
+  hora: string;
+  profesionalNombre: string;
+}
+
 const GestionSolicitudes = () => {
   const { confirm, ConfirmDialog } = useConfirm();
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [profesionales, setProfesionales] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [procesando, setProcesando] = useState<Solicitud | null>(null);
+  const [citaConfirmada, setCitaConfirmada] = useState<CitaConfirmada | null>(null);
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
   const [cargandoSlots, setCargandoSlots] = useState(false);
   const [datosCita, setDatosCita] = useState<DatosCita>({
@@ -122,18 +133,43 @@ const GestionSolicitudes = () => {
       }
 
       await deleteDoc(doc(db, 'solicitudes', procesando.id));
-      toast.success('Cita agendada y solicitud procesada.');
-      setProcesando(null);
+      setCitaConfirmada({
+        nombre: procesando.nombre,
+        telefono: procesando.telefono,
+        servicio: procesando.servicio,
+        fecha: datosCita.fecha,
+        hora: datosCita.hora,
+        profesionalNombre: `${pro.grado} ${pro.nombre}`.trim(),
+      });
     } catch (error) {
       console.error('Error al agendar:', error);
       toast.error('Error al procesar la solicitud');
     }
   };
 
+  const cerrarModal = () => {
+    setCitaConfirmada(null);
+    setProcesando(null);
+  };
+
   const generarLinkWhatsApp = (sol: Solicitud) => {
     const telefonoLimpio = sol.telefono.replace(/\D/g, '');
     const mensaje = `Hola ${sol.nombre}, le saludamos de PiesClinic. 🦶 Recibimos su solicitud de cita para *${sol.servicio}* (Preferencia: ${sol.fechaDeseada} / ${sol.hora}). Queríamos confirmar disponibilidad...`;
     return `https://wa.me/506${telefonoLimpio}?text=${encodeURIComponent(mensaje)}`;
+  };
+
+  const generarLinkConfirmacion = (c: CitaConfirmada) => {
+    const tel = c.telefono.replace(/\D/g, '');
+    const fechaDisplay = format(new Date(`${c.fecha}T12:00:00`), "EEEE d 'de' MMMM", { locale: es });
+    const msg =
+      `Hola ${c.nombre}, su cita en PiesClinic ha sido confirmada ✅\n\n` +
+      `📅 ${fechaDisplay}\n` +
+      `🕐 ${c.hora}\n` +
+      `🦶 ${c.servicio}\n` +
+      `👤 ${c.profesionalNombre}\n\n` +
+      `📍 Plaza Madero Coronado, 2° piso local 5\n\n` +
+      `Si necesita reprogramar, contáctenos por este medio.`;
+    return `https://wa.me/506${tel}?text=${encodeURIComponent(msg)}`;
   };
 
   return (
@@ -223,67 +259,124 @@ const GestionSolicitudes = () => {
       {procesando && (
         <div className="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-1">Confirmar Cita</h3>
-              <p className="text-xs text-gray-500 mb-6">
-                Asignar espacio para <strong className="text-black uppercase">{procesando.nombre}</strong>
-              </p>
 
-              <form onSubmit={confirmarCita} className="space-y-4">
-                <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Especialista</label>
-                  <select
-                    required
-                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                    value={datosCita.profesionalId}
-                    onChange={(e) => setDatosCita({ ...datosCita, profesionalId: e.target.value, hora: '' })}
-                  >
-                    <option value="">Seleccione...</option>
-                    {profesionales.map((p) => (
-                      <option key={p.id} value={p.id}>{p.grado} {p.nombre}</option>
-                    ))}
-                  </select>
+            {citaConfirmada ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">✅</span>
+                </div>
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-1">¡Cita Confirmada!</h3>
+                <p className="text-xs text-gray-400 uppercase font-black tracking-widest mb-6">
+                  Lista para enviar al paciente
+                </p>
+
+                <div className="bg-gray-50 rounded-2xl p-5 text-left space-y-2 mb-6">
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Resumen</p>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">👤</span>
+                    <span className="font-black text-gray-900 uppercase text-sm">{citaConfirmada.nombre}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">📅</span>
+                    <span className="font-bold text-gray-700 text-sm capitalize">
+                      {format(new Date(`${citaConfirmada.fecha}T12:00:00`), "EEEE d 'de' MMMM yyyy", { locale: es })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">🕐</span>
+                    <span className="font-bold text-gray-700 text-sm">{citaConfirmada.hora}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">🦶</span>
+                    <span className="font-bold text-gray-700 text-sm">{citaConfirmada.servicio}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-base">👨‍⚕️</span>
+                    <span className="font-bold text-gray-700 text-sm">{citaConfirmada.profesionalNombre}</span>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Fecha Definitiva</label>
-                  <input
-                    type="date"
-                    required
-                    className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
-                    value={datosCita.fecha}
-                    onChange={(e) => setDatosCita({ ...datosCita, fecha: e.target.value, hora: '' })}
-                  />
-                </div>
+                <a
+                  href={generarLinkConfirmacion(citaConfirmada)}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={cerrarModal}
+                  className="flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-green-500 text-white font-black uppercase text-xs tracking-widest hover:bg-green-600 transition-all shadow-lg mb-3"
+                >
+                  💬 Enviar confirmación por WhatsApp
+                </a>
+                <button
+                  type="button"
+                  onClick={cerrarModal}
+                  className="text-[10px] text-gray-400 font-black uppercase tracking-widest hover:text-gray-600"
+                >
+                  Cerrar sin enviar
+                </button>
+              </div>
+            ) : (
+              <div className="p-8">
+                <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight mb-1">Confirmar Cita</h3>
+                <p className="text-xs text-gray-500 mb-6">
+                  Asignar espacio para <strong className="text-black uppercase">{procesando.nombre}</strong>
+                </p>
 
-                <div>
-                  <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-2">Horario</label>
-                  <SlotPicker
-                    horasOcupadas={horasOcupadas}
-                    value={datosCita.hora}
-                    onChange={(hora) => setDatosCita((prev) => ({ ...prev, hora }))}
-                    cargando={cargandoSlots}
-                    sinEspecialista={!datosCita.profesionalId || !datosCita.fecha}
-                  />
-                </div>
+                <form onSubmit={confirmarCita} className="space-y-4">
+                  <div>
+                    <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Especialista</label>
+                    <select
+                      required
+                      className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                      value={datosCita.profesionalId}
+                      onChange={(e) => setDatosCita({ ...datosCita, profesionalId: e.target.value, hora: '' })}
+                    >
+                      <option value="">Seleccione...</option>
+                      {profesionales.map((p) => (
+                        <option key={p.id} value={p.id}>{p.grado} {p.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setProcesando(null)}
-                    className="flex-1 py-4 rounded-xl font-black text-xs uppercase text-gray-400 hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 py-4 rounded-xl font-black text-xs uppercase bg-[#D32F2F] text-white hover:bg-black shadow-xl"
-                  >
-                    Confirmar
-                  </button>
-                </div>
-              </form>
-            </div>
+                  <div>
+                    <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-1">Fecha Definitiva</label>
+                    <input
+                      type="date"
+                      required
+                      className="w-full p-3 bg-gray-50 rounded-xl font-bold text-gray-900 outline-none focus:ring-2 focus:ring-[#D32F2F]"
+                      value={datosCita.fecha}
+                      onChange={(e) => setDatosCita({ ...datosCita, fecha: e.target.value, hora: '' })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black text-gray-400 uppercase ml-2 mb-2">Horario</label>
+                    <SlotPicker
+                      horasOcupadas={horasOcupadas}
+                      value={datosCita.hora}
+                      onChange={(hora) => setDatosCita((prev) => ({ ...prev, hora }))}
+                      cargando={cargandoSlots}
+                      sinEspecialista={!datosCita.profesionalId || !datosCita.fecha}
+                    />
+                  </div>
+
+                  <div className="pt-4 flex gap-3">
+                    <button
+                      type="button"
+                      onClick={cerrarModal}
+                      className="flex-1 py-4 rounded-xl font-black text-xs uppercase text-gray-400 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-4 rounded-xl font-black text-xs uppercase bg-[#D32F2F] text-white hover:bg-black shadow-xl"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
           </div>
         </div>
       )}
