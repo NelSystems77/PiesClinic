@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, getDoc, doc } from 'firebase/firestore';
 import { format } from 'date-fns';
 
 interface DetalleCierre {
@@ -46,17 +46,31 @@ const CierreCaja = ({ fechaSeleccionada }: CierreCajaProps) => {
         const querySnapshot = await getDocs(q);
         const ingresos: Reporte = { total: 0, efectivo: 0, sinpe: 0, tarjeta: 0, conteo: 0, detalles: [] };
 
-        querySnapshot.forEach((d) => {
-          const data = d.data();
-          const monto = Number(data.totalPagado ?? data.costo ?? 0);
+        await Promise.all(querySnapshot.docs.map(async (d) => {
+          const cita = d.data();
+
+          // costo y metodoPago viven en expedientes/sesiones, no en citas
+          let monto = 0;
+          let metodo = 'Efectivo';
+          if (cita.pacienteId) {
+            const sesionSnap = await getDoc(doc(db, 'expedientes', cita.pacienteId, 'sesiones', d.id));
+            if (sesionSnap.exists()) {
+              const sesion = sesionSnap.data();
+              monto = Number(sesion.costo ?? 0);
+              metodo = sesion.metodoPago || 'Efectivo';
+            }
+          }
+          // fallback para citas antiguas que sí tenían estos campos
+          if (monto === 0) monto = Number(cita.totalPagado ?? cita.costo ?? 0);
+          if (metodo === 'Efectivo' && cita.metodoPago) metodo = cita.metodoPago;
+
           ingresos.total += monto;
           ingresos.conteo += 1;
-          ingresos.detalles.push({ id: d.id, ...data } as DetalleCierre);
-          const metodo: string = data.metodoPago || 'Efectivo';
+          ingresos.detalles.push({ id: d.id, ...cita, costo: monto, metodoPago: metodo } as DetalleCierre);
           if (metodo === 'Efectivo') ingresos.efectivo += monto;
           else if (metodo === 'Sinpe' || metodo === 'Transferencia') ingresos.sinpe += monto;
           else if (metodo === 'Tarjeta') ingresos.tarjeta += monto;
-        });
+        }));
 
         setReporte(ingresos);
       } catch (error) {
@@ -175,7 +189,7 @@ const CierreCaja = ({ fechaSeleccionada }: CierreCajaProps) => {
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
-                      <p className="font-black text-gray-900">₡{Number(det.totalPagado || 0).toLocaleString()}</p>
+                      <p className="font-black text-gray-900">₡{Number(det.costo || det.totalPagado || 0).toLocaleString()}</p>
                     </td>
                   </tr>
                 ))
