@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { db } from '../firebase';
-import { collection, addDoc, setDoc, doc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, setDoc, doc, getDoc, query, where, getDocs, limit, orderBy, serverTimestamp } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Usuario, Servicio } from '../types';
@@ -29,6 +29,12 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
   const [buscandoPaciente, setBuscandoPaciente] = useState(false);
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
   const [cargandoSlots, setCargandoSlots] = useState(false);
+
+  interface AlertaPaciente {
+    sesiones: number;
+    condiciones: Array<{ label: string; variant: 'danger' | 'warning' }>;
+  }
+  const [alertaPaciente, setAlertaPaciente] = useState<AlertaPaciente | null>(null);
 
   const [formData, setFormData] = useState<FormData>({
     pacienteId: '',
@@ -98,31 +104,65 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
     cargarSlots();
   }, [especialistaElegido, fechaSeleccionada]);
 
+  const CONDICIONES_CRITICAS = [
+    { campo: 'diabetes',     label: 'Diabético',     variant: 'danger'  as const },
+    { campo: 'hemofilia',    label: 'Hemofilia',     variant: 'danger'  as const },
+    { campo: 'vihSida',      label: 'VIH/SIDA',      variant: 'danger'  as const },
+    { campo: 'hipertension', label: 'Hipertensión',  variant: 'warning' as const },
+    { campo: 'asma',         label: 'Asma',          variant: 'warning' as const },
+    { campo: 'enfVascular',  label: 'Enf. Vascular', variant: 'warning' as const },
+  ];
+
   const buscarPacienteExistente = async (id: string) => {
     const cleanId = id.trim();
-    if (cleanId.length === 9) {
-      setBuscandoPaciente(true);
-      try {
-        const q = query(
+    if (cleanId.length !== 9) {
+      setAlertaPaciente(null);
+      return;
+    }
+    setBuscandoPaciente(true);
+    try {
+      const [citasSnap, expSnap, sesSnap] = await Promise.all([
+        getDocs(query(
           collection(db, 'citas'),
           where('pacienteId', '==', cleanId),
           orderBy('createdAt', 'desc'),
           limit(1)
-        );
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-          const datosPrevios = querySnapshot.docs[0].data();
-          setFormData((prev) => ({
-            ...prev,
-            paciente: datosPrevios.paciente || '',
-            telefono: datosPrevios.telefono || '',
-          }));
-        }
-      } catch (error) {
-        console.error('Error al buscar paciente:', error);
-      } finally {
-        setBuscandoPaciente(false);
+        )),
+        getDoc(doc(db, 'expedientes', cleanId)),
+        getDocs(collection(db, 'expedientes', cleanId, 'sesiones')),
+      ]);
+
+      if (!citasSnap.empty) {
+        const datosPrevios = citasSnap.docs[0].data();
+        setFormData((prev) => ({
+          ...prev,
+          paciente: datosPrevios.paciente || '',
+          telefono: datosPrevios.telefono || '',
+        }));
       }
+
+      const sesiones = sesSnap.size;
+      const condiciones: AlertaPaciente['condiciones'] = [];
+
+      if (expSnap.exists()) {
+        const anamnesis = expSnap.data().anamnesis || {};
+        for (const c of CONDICIONES_CRITICAS) {
+          const val: string = anamnesis[c.campo] ?? '';
+          if (val && val.toLowerCase() !== 'no' && val.toLowerCase() !== 'ninguna') {
+            condiciones.push({ label: c.label, variant: c.variant });
+          }
+        }
+        const alergias: string = anamnesis.alergias ?? '';
+        if (alergias && alergias.toLowerCase() !== 'no' && alergias.toLowerCase() !== 'ninguna' && alergias !== '') {
+          condiciones.push({ label: 'Alergias', variant: 'warning' });
+        }
+      }
+
+      setAlertaPaciente({ sesiones, condiciones });
+    } catch (error) {
+      console.error('Error al buscar paciente:', error);
+    } finally {
+      setBuscandoPaciente(false);
     }
   };
 
@@ -209,6 +249,30 @@ const FormularioCita = ({ onClose, fechaSeleccionada }: FormularioCitaProps) => 
             />
             {buscandoPaciente && <span className="absolute right-4 top-10 text-[9px] font-black text-blue-500 uppercase">Buscando...</span>}
           </div>
+
+          {alertaPaciente && (
+            <div className="flex flex-wrap gap-1.5 -mt-1 px-1">
+              <span className={`inline-flex items-center px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                alertaPaciente.sesiones === 0
+                  ? 'bg-blue-50 text-blue-500'
+                  : 'bg-gray-100 text-gray-500'
+              }`}>
+                {alertaPaciente.sesiones === 0 ? '✦ Paciente nuevo' : `${alertaPaciente.sesiones} sesiones previas`}
+              </span>
+              {alertaPaciente.condiciones.map((c) => (
+                <span
+                  key={c.label}
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                    c.variant === 'danger'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-amber-100 text-amber-700'
+                  }`}
+                >
+                  ⚠ {c.label}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div>
             <label className="text-[10px] font-black uppercase text-gray-400 mb-1 ml-2 block tracking-widest">Paciente</label>
