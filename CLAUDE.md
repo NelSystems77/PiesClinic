@@ -247,6 +247,7 @@ src/
 - PWA manifest fully configured — all 8 icon sizes (72→512 px) registrados en `manifest.webmanifest` y precacheados por el service worker
 - PWA icons procesados con esquinas redondeadas (estilo iOS/Android squircle) y sombra interior difuminada. Script de regeneración: `node scripts/round-icons.mjs` (usa `public/icons/logo.PNG` como fuente)
 - Firebase Hosting with SPA rewrite
+- Before/after image slider en landing (`BeforeAfterSlider` en `LandingPage.tsx`) — sección "Cambios que se notan": drag en desktop + touch en móvil, `clipPath` para transición fluida, etiquetas ANTES/DESPUÉS, handle con flechas. Imágenes en `public/pictures/antes.jpg` y `public/pictures/despues.jpg`, trackeadas en git. Completado 2026-06-13.
 
 ---
 
@@ -309,6 +310,7 @@ Priority order based on business value and blueprint §13 checklist.
 ### Phase 4 — Landing Page
 
 - [x] **Full landing page** — `LandingPage.tsx` completa (2026-06-12): Hero con `consultorio.jpg`, strip de 3 pilares, servicios dinámicos desde Firestore, sección "¿Por qué elegirnos?" con `servicios.jpg`, PYME certificada con `pymecertificada.jpg`, ubicación con `ubicacion.jpg` (Plaza Madero Coronado 2° piso local 5), FAQ accordion, CTA final, botón WhatsApp flotante (+50687409343) + Back to Top. Mobile-first responsive. Fix logo AppLayout: `/icons/logo.PNG`.
+- [x] **Slider antes/después** — sección "Cambios que se notan" (2026-06-13): componente `BeforeAfterSlider` inline en `LandingPage.tsx`. Sin dependencias externas. Drag desktop via `window` mousemove/mouseup + touch móvil. Transición con `clipPath: inset(0 X% 0 0)`. Etiquetas ANTES/DESPUÉS en esquinas. Imágenes `public/pictures/antes.jpg` + `public/pictures/despues.jpg` trackeadas en git. Ubicada entre sección "¿Por qué elegirnos?" y PYME.
 - [ ] **Public booking page** — replace modal with dedicated `/booking` route.
 - [ ] **SEO** — meta tags, Schema.org JSON-LD for local business.
 
