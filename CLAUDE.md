@@ -277,7 +277,7 @@ Reemplazados los 26 calls en 7 componentes con `react-hot-toast` + hook `useConf
 - `servicios` (lectura pública, escritura admin)
 - `solicitudes` (creación pública, gestión admin)
 
-Pendiente de deploy: `firebase deploy --only firestore`
+Deployed: `firebase deploy --only firestore` — 2026-06-13. Usar cuenta `nelsoncr@gmail.com` para deploys (nelsystems77@gmail.com no tiene permisos de IAM en el proyecto).
 
 ---
 
