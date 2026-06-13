@@ -467,45 +467,34 @@ const Dashboard = () => {
             <div className="relative w-full">
               <div ref={tabsScrollRef} className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-gray-100 overflow-x-auto no-scrollbar gap-1 sm:gap-2 w-full">
                 {([
-                  { key: 'agenda',    label: '📅 Agenda' },
-                  { key: 'staff',     label: '👥 Staff' },
-                  { key: 'servicios', label: '🛍️ Servicios' },
-                  { key: 'caja',      label: '💰 Caja' },
-                  { key: 'reportes',  label: '📊 Reportes' },
-                  { key: 'pacientes', label: '📇 Expedientes' },
-                  { key: 'migracion', label: '🔄 Agendas' },
+                  { key: 'agenda',      label: '📅 Agenda' },
+                  { key: 'solicitudes', label: '📩 Solicitudes' },
+                  { key: 'servicios',   label: '🛍️ Servicios' },
+                  { key: 'caja',        label: '💰 Caja' },
+                  { key: 'reportes',    label: '📊 Reportes' },
+                  { key: 'pacientes',   label: '📇 Expedientes' },
+                  { key: 'migracion',   label: '🔄 Agendas' },
+                  { key: 'staff',       label: '👥 Staff' },
                 ] as { key: Vista; label: string }[]).map(({ key, label }) => (
                   <button
                     key={key}
                     type="button"
                     data-active={vistaActual === key}
                     onClick={() => setVistaActual(key)}
-                    className={`whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
+                    className={`relative whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
                       vistaActual === key
                         ? 'bg-[#D32F2F] text-white shadow-md'
                         : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                     }`}
                   >
                     {label}
+                    {key === 'solicitudes' && conteoSolicitudes > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs px-1 border-2 border-white shadow-sm animate-pulse">
+                        {conteoSolicitudes}
+                      </span>
+                    )}
                   </button>
                 ))}
-                <button
-                  type="button"
-                  data-active={vistaActual === 'solicitudes'}
-                  onClick={() => setVistaActual('solicitudes')}
-                  className={`relative whitespace-nowrap px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all ${
-                    vistaActual === 'solicitudes'
-                      ? 'bg-[#D32F2F] text-white shadow-md'
-                      : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                  }`}
-                >
-                  📩 Solicitudes
-                  {conteoSolicitudes > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-600 text-white min-w-[20px] h-5 flex items-center justify-center rounded-full text-xs px-1 border-2 border-white shadow-sm animate-pulse">
-                      {conteoSolicitudes}
-                    </span>
-                  )}
-                </button>
               </div>
               {/* Fade gradient indica que hay más tabs a la derecha */}
               <div className="pointer-events-none absolute right-0 top-0 h-full w-10 rounded-r-2xl bg-gradient-to-l from-white to-transparent" />
